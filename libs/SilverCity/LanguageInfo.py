@@ -16,7 +16,7 @@ class LanguageInfo:
         for pattern in self.extension_patterns:
             # pattern can either be a regular expression or a
             # string
-            if isinstance(pattern, types.StringTypes):
+            if isinstance(pattern, str):
                 if extension.lower() == pattern.lower():
                     return 1
             elif pattern.match(extension):
@@ -71,7 +71,7 @@ def guess_language_for_file(filename):
         if len(guesses) == 1:
             return guesses[0]
 
-        import NULL
+        from . import NULL
         return NULL.null_language_info
 
 
@@ -82,7 +82,7 @@ def guess_language_for_buffer(buffer):
     if len(guesses) == 1:
         return guesses[0]
 
-    import NULL
+    from . import NULL
     return NULL.null_language_info
 
 

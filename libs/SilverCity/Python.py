@@ -110,9 +110,9 @@ def looks_like_html(s):
 
 
 def guess_generator(s):
-    import HyperText
-    import XML
-    import XSLT
+    from . import HyperText
+    from . import XML
+    from . import XSLT
 
     if looks_like_markup(s):
         if looks_like_xsl(s):

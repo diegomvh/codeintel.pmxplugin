@@ -158,13 +158,13 @@ class SilverCityAccessor(Accessor):
     def __init__(self, lexer, content):
         # Assume buffer encoding is always UTF-8
         self.lexer = lexer
-        self.content = unicode(content)
+        self.content = str(content)
 
     def reset_content(self, content):
         """A backdoor specific to this accessor to allow the equivalent of
         updating the buffer/file/content.
         """
-        self.content = unicode(content)
+        self.content = str(content)
         self.__tokens_cache = None
         self.__position_data_cache = None
 
@@ -200,7 +200,7 @@ class SilverCityAccessor(Accessor):
         lower, upper = 0, len(self.tokens) - 1  # [lower-limit, upper-limit)
         sentinel = 15
         while sentinel > 0:
-            idx = ((upper - lower) / 2) + lower
+            idx = ((upper - lower) // 2) + lower
             token = self.tokens[idx]
             # print "_token_at_pos %d: token idx=%d text[%d:%d]=%r"\
             #      % (pos, idx, token["start_index"], token["end_index"],
@@ -959,7 +959,7 @@ def _test():
     content = "This is my test buffer\r\nSecond   line\r\nThird line\r\n"
     styles = "1111011011011110111111 2 21111110001111 2 21111101111 2 2".replace(
         " ", "")
-    ta = _TestAccessor(content, map(int, styles))
+    ta = _TestAccessor(content, list(map(int, styles)))
     pos = len(content) - 2
     ac = AccessorCache(ta, pos)
     # ac._debug = True
