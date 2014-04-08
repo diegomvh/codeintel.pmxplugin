@@ -57,7 +57,10 @@ from io import StringIO
 import codecs
 import copy
 import weakref
-import queue
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 
 import ciElementTree as ET
 from codeintel2.common import *

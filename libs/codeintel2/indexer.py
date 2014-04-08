@@ -55,7 +55,10 @@ import sys
 import threading
 import time
 import bisect
-import queue
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 from hashlib import md5
 import traceback
 
