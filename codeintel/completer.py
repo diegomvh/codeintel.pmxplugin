@@ -101,7 +101,7 @@ class CodeIndentCompletionModel(CompletionBaseModel):
                 ret.append(calltips)
             elif f == 'defns':
                 ret.append(defns)
-        print(ret, msgs)
+        
         total = (time.time() - self.start) * 1000
         if total > 1000:
             timestr = "~%ss" % int(round(total / 1000))

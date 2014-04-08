@@ -657,7 +657,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
             varargsIndex = kwargsIndex = None
         sigArgs = []
         for i in range(len(node_args.args)):
-            argName = node_args.args[i].arg
+            argName = node_args.args[i].id
             argument = {"name": argName,
                         "nspath": nspath + (argName,),
                         "doc": None,

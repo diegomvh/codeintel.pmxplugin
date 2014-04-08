@@ -59,11 +59,9 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
             #logger(view, 'info', "Updating indexes... The first time this can take a while. Do not despair!", timeout=20000, delay=despair)
             despair = 0
             return
-    #logger(view, 'info', "processing `%s': please wait..." % lang)
-    #is_scratch = view.is_scratch()
-    is_scratch = True
-    #is_dirty = view.is_dirty()
-    is_dirty = True
+    editor.logger.info("processing `%s': please wait..." % lang)
+    is_scratch = editor.isScratch()
+    is_dirty = editor.isDirty()
     vid = id(editor)
     #folders = getattr(view.window(), 'folders', lambda: [])() # FIXME: it's like this for backward compatibility (<= 2060)
     folders = []
@@ -83,8 +81,7 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
         now = time.time()
 
         mgr = codeintel_manager(folders_id)
-        #mgr.db.event_reporter = lambda m: logger(view, 'event', m)
-        mgr.db.event_reporter = lambda m: print(m)
+        mgr.db.event_reporter = lambda m: editor.logger.debug(m)
 
         try:
             env = _ci_envs_[vid]
@@ -127,7 +124,6 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
                 config_file = project_dir and folder == '.codeintel' and os.path.join(project_dir, 'config')
                 if not (config_file and os.path.exists(config_file)):
                     config_file = None
-            print(project_dir, project_base_dir)
             valid = True
             if not mgr.is_citadel_lang(lang) and not mgr.is_cpln_lang(lang):
                 if lang in ('Console', 'Plain text'):
@@ -230,7 +226,7 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
                     despaired = False
                     msg = "Updating indexes for '%s'... The first time this can take a while." % lang
                     print(msg, file=condeintel_log_file)
-                    #logger(view, 'info', msg, timeout=20000, delay=1000)
+                    editor.logger.info(msg)
                     if not path or is_scratch:
                         buf.scan() # FIXME: Always scanning unsaved files (since many tabs can have unsaved files, or find other path as ID)
                     else:
@@ -244,7 +240,7 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
         if callback:
             msg = "Doing CodeIntel for '%s' (hold on)..." % lang
             print(msg, file=condeintel_log_file)
-            #logger(view, 'info', msg, timeout=20000, delay=1000)
+            editor.logger.info(msg)
             callback(buf, msgs)
         else:
             #logger(view, 'info', "")
