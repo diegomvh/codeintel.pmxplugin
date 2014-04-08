@@ -34,6 +34,7 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
+from __future__ import print_function
 
 """JavaScript support for Code Intelligence
 

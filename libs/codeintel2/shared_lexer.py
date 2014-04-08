@@ -38,6 +38,7 @@
 #   Eric Promislow (EricP@ActiveState.com)
 #
 # Common wrapper around SilverCity used by Ruby, Perl
+from __future__ import print_function
 
 import copy
 import re
