@@ -1,83 +1,71 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-VERSION = "1.0"
-
-import os
-import sys
-import datetime
-import stat
 import time
-import threading
 import logging
 from cStringIO import StringIO
 
-__file__ = os.path.normpath(os.path.abspath(__file__))
-__path__ = os.path.dirname(__file__)
+from prymatex.qt import QtCore
 
-libs_path = os.path.join(__path__, 'libs')
-if libs_path not in sys.path:
-    sys.path.insert(0, libs_path)
-
-arch_path = os.path.join(__path__, 'arch')
-if arch_path not in sys.path:
-    sys.path.insert(0, arch_path)
-
-arch_path = os.path.abspath(os.path.join(__path__, '../../../Projects/prymatex'))
-if arch_path not in sys.path:
-    sys.path.insert(0, arch_path)
+from prymatex.gui.codeeditor import CompletionBaseModel
 
 from codeintel2.common import (CodeIntelError, EvalTimeout, LogEvalController,
     TRG_FORM_DEFN, TRG_FORM_CPLN, TRG_FORM_CALLTIP)
-from codeintel.manager import codeintel_manager, codeintel_scan
+
+from codeintel.base import codeintel_scan, condeintel_log_file
 from codeintel.utils import pos2bytes
 
-despaired = False
-
-codeintel_log = logging.getLogger("codeintel")
-condeintel_log_filename = ''
-condeintel_log_file = None
-_ci_mgr_ = {}
-
-if __name__ == '__main__':
-    mgr = codeintel_manager(str(hash(frozenset([]))))
-    print("Available: %s" % ', '.join(set(mgr.get_citadel_langs() + mgr.get_cpln_langs())))
-                    
-    path = None
-    lang = "JavaScript"
-    env = {}
-    contentJavaScript = "window. "
-    contentPython = "import os\n\ndef pepe():\n    pass\np = os. "
-    content = contentJavaScript
-    pos = 5
-    forms = ('defns', 'cplns', 'calltips')
-    start = time.time()
-    print(pos2bytes(content, pos), content[pos])
-    def _codeintel(buf, msgs):
+class CodeIndentCompletionModel(CompletionBaseModel):
+    def __init__(self, addon):
+        super(CodeIndentCompletionModel, self).__init__(parent = addon)
+        self.logger = addon.application.getLogger("codeintel")
+    
+    def fill(self):
+        print("arrancamos")
+        #super(CodeIndentCompletionModel, self).fill()
+        
+        self.start = time.time()
+        self.timeout = 7000
+        #TODO: Que porqueria esto :)
+        codeintel_scan(self.editor, self.editor.filePath, 
+            self.editor.toPlainText(), self.editor.syntax().name,
+            callback=self._codeintel, pos=self.editor.cursorPosition(), 
+            forms=('defns', 'cplns', 'calltips')
+        )
+        
+    def _codeintel(self, buf, msgs):
         cplns = None
         calltips = None
         defns = None
-    
+        
+        #self.setSuggestions(suggestions)
+        #TODO: Mejorar esta porqueria
+        forms = ('defns', 'cplns', 'calltips')
+        
         if not buf:
             return [None] * len(forms)
-    
+        path = self.editor.filePath
+        content = self.editor.toPlainText()
+        pos = self.editor.cursorPosition()
+        lang = self.editor.syntax().name
+        
         try:
             trg = getattr(buf, 'preceding_trg_from_pos', lambda p: None)(pos2bytes(content, pos), pos2bytes(content, pos))
             defn_trg = getattr(buf, 'defn_trg_from_pos', lambda p: None)(pos2bytes(content, pos))
         except (CodeIntelError):
-            codeintel_log.exception("Exception! %s:%s (%s)" % (path or '<Unsaved>', pos, lang))
+            self.logger.exception("Exception! %s:%s (%s)" % (path or '<Unsaved>', pos, lang))
             trg = None
             defn_trg = None
         except:
-            codeintel_log.exception("Exception! %s:%s (%s)" % (path or '<Unsaved>', pos, lang))
+            self.logger.exception("Exception! %s:%s (%s)" % (path or '<Unsaved>', pos, lang))
             raise
         else:
             eval_log_stream = StringIO()
-            _hdlrs = codeintel_log.handlers
+            _hdlrs = self.logger.handlers
             hdlr = logging.StreamHandler(eval_log_stream)
             hdlr.setFormatter(logging.Formatter("%(name)s: %(levelname)s: %(message)s"))
-            codeintel_log.handlers = list(_hdlrs) + [hdlr]
-            ctlr = LogEvalController(codeintel_log)
+            self.logger.handlers = list(_hdlrs) + [hdlr]
+            ctlr = LogEvalController(self.logger)
             try:
                 if 'cplns' in forms and trg and trg.form == TRG_FORM_CPLN:
                     cplns = buf.cplns_from_trg(trg, ctlr=ctlr, timeout=20)
@@ -88,7 +76,7 @@ if __name__ == '__main__':
             except EvalTimeout:
                 pass
             finally:
-                codeintel_log.handlers = _hdlrs
+                self.logger.handlers = _hdlrs
             result = False
             merge = ''
             for msg in reversed(eval_log_stream.getvalue().strip().split('\n')):
@@ -114,12 +102,12 @@ if __name__ == '__main__':
             elif f == 'defns':
                 ret.append(defns)
         print(ret, msgs)
-        total = (time.time() - start) * 1000
+        total = (time.time() - self.start) * 1000
         if total > 1000:
             timestr = "~%ss" % int(round(total / 1000))
         else:
             timestr = "%sms" % int(round(total))
-        if not despaired or total < timeout:
+        if total < self.timeout:
             msg = "Done '%s' CodeIntel! Full CodeIntel took %s" % (lang, timestr)
             print(msg, file=condeintel_log_file)
 
@@ -130,5 +118,31 @@ if __name__ == '__main__':
         else:
             msg = "Just finished indexing '%s'! Please try again. Full CodeIntel took %s" % (lang, timestr)
             print(msg, file=condeintel_log_file)
+
+    def allowOneSuggestion(self, isPrefix):
+        return True
+        
+    def columnCount(self, parent = None):
+        return 2
     
-    codeintel_scan(path, content, lang, callback=_codeintel, pos=pos, forms=forms)
+    def data(self, index, role = QtCore.Qt.DisplayRole):
+        if not index.isValid():
+            return None
+        suggestion = self.suggestions[index.row()]
+        if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
+            #Es un bundle item
+            if index.column() == 0:
+                return suggestion.tabTrigger
+            elif index.column() == 1:
+                return suggestion.name
+        elif role == QtCore.Qt.DecorationRole and index.column() == 0:
+            return suggestion.icon()
+        elif role == QtCore.Qt.ToolTipRole:
+            return suggestion.name
+
+    def insertCompletion(self, index):
+        suggestion = self.suggestions[index.row()]
+        currentWord, start, end = self.editor.currentWord()
+        cursor = self.editor.newCursorAtPosition(start, end)
+        cursor.removeSelectedText()
+        self.editor.insertBundleItem(suggestion)

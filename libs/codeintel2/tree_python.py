@@ -146,6 +146,7 @@ class PythonImportLibGenerator(object):
         else:
             raise StopIteration
 
+    next = __next__
 
 class PythonTreeEvaluator(TreeEvaluator):
 

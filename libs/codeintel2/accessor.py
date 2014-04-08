@@ -34,7 +34,7 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-
+from __future__ import unicode_literals
 
 """The Accessor interface (and implementations) for accessing scintilla
 lexer-based styled buffers.
@@ -158,13 +158,13 @@ class SilverCityAccessor(Accessor):
     def __init__(self, lexer, content):
         # Assume buffer encoding is always UTF-8
         self.lexer = lexer
-        self.content = str(content)
+        self.content = "%s" % content
 
     def reset_content(self, content):
         """A backdoor specific to this accessor to allow the equivalent of
         updating the buffer/file/content.
         """
-        self.content = str(content)
+        self.content = "%s" % content
         self.__tokens_cache = None
         self.__position_data_cache = None
 
@@ -532,7 +532,7 @@ class KoDocumentAccessor(SciMozAccessor):
         except (COMException, AttributeError) as ex:
             # Race conditions on file opening in Komodo can result
             # in self.doc() being None or an error in .getView().
-            raise NoBufferAccessorError(str(ex))
+            raise NoBufferAccessorError("%s" % ex)
         return view.scimoz
 
     if _xpcom_:
