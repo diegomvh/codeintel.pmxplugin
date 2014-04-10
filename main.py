@@ -32,7 +32,7 @@ from codeintel2.common import (CodeIntelError, EvalTimeout, LogEvalController,
 from codeintel.manager import codeintel_manager, codeintel_scan
 from codeintel.utils import pos2bytes
 
-despaired = False
+
 
 codeintel_log = logging.getLogger("codeintel")
 condeintel_log_filename = ''

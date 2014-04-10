@@ -6,4 +6,4 @@ from codeintel.completer import CodeIndentCompletionModel
 class CodeIntelAddon(CodeEditorAddon):
     def initialize(self, **kwargs):
         super(CodeIntelAddon, self).initialize(**kwargs)
-        self.editor.completer.insertModel(0, CodeIndentCompletionModel(self))
+        self.editor.completer.registerModel(CodeIndentCompletionModel(self))

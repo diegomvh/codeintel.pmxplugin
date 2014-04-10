@@ -16,8 +16,10 @@ from codeintel.utils import get_revision, tryGetMTime, find_back, tryReadDict
 
 CODEINTEL_HOME_DIR = os.path.expanduser(os.path.join('~', '.codeintel'))
 
+despair = 0
+despaired = False
+
 codeintel_log = logging.getLogger("codeintel")
-log = logging.getLogger("SublimeCodeIntel")
 condeintel_log_filename = ''
 condeintel_log_file = None
 
@@ -56,7 +58,7 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
     global despair
     for thread in threading.enumerate():
         if thread.isAlive() and thread.name == "scanning thread":
-            #logger(view, 'info', "Updating indexes... The first time this can take a while. Do not despair!", timeout=20000, delay=despair)
+            editor.logger.info("Updating indexes... The first time this can take a while. Do not despair!")
             despair = 0
             return
     editor.logger.info("processing `%s': please wait..." % lang)
@@ -128,7 +130,7 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
             if not mgr.is_citadel_lang(lang) and not mgr.is_cpln_lang(lang):
                 if lang in ('Console', 'Plain text'):
                     msg = "Invalid language: %s. Available: %s" % (lang, ', '.join(set(mgr.get_citadel_langs() + mgr.get_cpln_langs())))
-                    log.debug(msg)
+                    editor.logger.debug(msg)
                     codeintel_log.warning(msg)
                 valid = False
 
@@ -147,7 +149,7 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
                     if catalog['name'] in codeintel_selected_catalogs:
                         catalogs.append(catalog['name'])
             msg = "Avaliable catalogs: %s" % ', '.join(all_catalogs) or None
-            log.debug(msg)
+            editor.logger.debug(msg)
             codeintel_log.debug(msg)
 
             config = {
@@ -162,13 +164,13 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
                 tryReadDict(config_default_file, _config)
             except Exception as e:
                 msg = "Malformed configuration file '%s': %s" % (config_default_file, e)
-                log.error(msg)
+                editor.logger.error(msg)
                 codeintel_log.error(msg)
             try:
                 tryReadDict(config_file, _config)
             except Exception as e:
                 msg = "Malformed configuration file '%s': %s" % (config_default_file, e)
-                log.error(msg)
+                editor.logger.error(msg)
                 codeintel_log.error(msg)
             config.update(_config.get(lang, {}))
 
@@ -212,7 +214,7 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
 
             if catalogs:
                 msg = "New env with catalogs for '%s': %s" % (lang, ', '.join(catalogs) or None)
-                log.debug(msg)
+                editor.logger.debug(msg)
                 codeintel_log.warning(msg)
                 msgs.append(('info', msg))
 
@@ -225,7 +227,6 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
                     despair = 0
                     despaired = False
                     msg = "Updating indexes for '%s'... The first time this can take a while." % lang
-                    print(msg, file=condeintel_log_file)
                     editor.logger.info(msg)
                     if not path or is_scratch:
                         buf.scan() # FIXME: Always scanning unsaved files (since many tabs can have unsaved files, or find other path as ID)
@@ -239,7 +240,6 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
             buf = None
         if callback:
             msg = "Doing CodeIntel for '%s' (hold on)..." % lang
-            print(msg, file=condeintel_log_file)
             editor.logger.info(msg)
             callback(buf, msgs)
         else:
