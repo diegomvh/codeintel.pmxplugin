@@ -7,6 +7,7 @@ import sys
 from prymatex.gui.codeeditor import CodeEditor
 
 def registerPlugin(manager, descriptor):
+    
     libs_path = os.path.join(descriptor.path, 'libs')
     if libs_path not in sys.path:
         sys.path.insert(0, libs_path)
