@@ -89,7 +89,7 @@ from codeintel2.manager import Manager
 from codeintel2.environment import SimplePrefsEnvironment
 from codeintel2.util import guess_lang_from_path
 
-from codeintel.utils import pos2bytes
+from codeintel.utils import pos2bytes, get_revision, tryGetMTime
 
 QUEUE = {}  # views waiting to be processed by codeintel
 
@@ -151,7 +151,7 @@ HISTORY_SIZE = 64
 jump_history_by_window = {}  # map of window id -> collections.deque([], HISTORY_SIZE)
 
 def tooltip_popup(editor, snippets):
-    vid = editor.id()
+    vid = id(editor)
     completions[vid] = snippets
     editor.run_command('auto_complete', {
         'disable_auto_insert': True,
@@ -295,7 +295,7 @@ def guess_lang(editor=None, path=None):
     if editor:
         syntax = os.path.splitext(os.path.basename(editor.settings().get('syntax')))[0]
 
-    vid = editor.id()
+    vid = id(editor)
     _k_ = '%s::%s' % (syntax, path)
     try:
         return languages[vid][_k_]
@@ -342,46 +342,39 @@ def guess_lang(editor=None, path=None):
 
 def autocomplete(editor, timeout, busy_timeout, forms, preemptive=False, args=[], kwargs={}):
     def _autocomplete_callback(editor, path, original_pos, lang):
-        editor_sel = editor.sel()
-        if not editor_sel:
-            return
-
-        sel = editor_sel[0]
-        pos = sel.end()
+        pos = editor.cursorPosition()
         if not pos or pos != original_pos:
             return
 
-        lpos = editor.line(sel).begin()
-        #text = editor.substr(sublime.Region(lpos, pos + 1))
-        next = text[-1] if len(text) == pos + 1 - lpos else None
+        text, start, end = editor.currentWord()
+        
+        vid = id(editor)
 
-        if not next or next != '_' and not next.isalnum():
-            vid = editor.id()
+        def _trigger(calltips, cplns=None):
+            print(calltips, cplns)
+            if cplns is not None or calltips is not None:
+                codeintel_log.info("Autocomplete called (%s) [%s]", lang, ','.join(c for c in ['cplns' if cplns else None, 'calltips' if calltips else None] if c))
 
-            def _trigger(calltips, cplns=None):
-                if cplns is not None or calltips is not None:
-                    codeintel_log.info("Autocomplete called (%s) [%s]", lang, ','.join(c for c in ['cplns' if cplns else None, 'calltips' if calltips else None] if c))
+            if cplns is not None:
+                function = None if 'import ' in text else 'function'
+                _completions = sorted(
+                    [('%s  (%s)' % (n, t), n + ('($0)' if t == function else '')) for t, n in cplns],
+                    key=lambda o: o[1]
+                )
+                if _completions:
+                    # Show autocompletions:
+                    completions[vid] = _completions
+                    editor.run_command('auto_complete', {
+                        'disable_auto_insert': True,
+                        'api_completions_only': True,
+                        'next_completion_if_showing': False,
+                        'auto_complete_commit_on_tab': True,
+                    })
+            if calltips:
+                tooltip(editor, calltips, original_pos)
 
-                if cplns is not None:
-                    function = None if 'import ' in text else 'function'
-                    _completions = sorted(
-                        [('%s  (%s)' % (n, t), n + ('($0)' if t == function else '')) for t, n in cplns],
-                        key=lambda o: o[1]
-                    )
-                    if _completions:
-                        # Show autocompletions:
-                        completions[vid] = _completions
-                        editor.run_command('auto_complete', {
-                            'disable_auto_insert': True,
-                            'api_completions_only': True,
-                            'next_completion_if_showing': False,
-                            'auto_complete_commit_on_tab': True,
-                        })
-                if calltips:
-                    tooltip(editor, calltips, original_pos)
-
-            #content = editor.substr(sublime.Region(0, editor.size()))
-            codeintel(editor, path, content, lang, pos, forms, _trigger)
+        content = editor.toPlainText()
+        codeintel(editor, path, content, lang, pos, forms, _trigger)
     # If it's a fill char, queue using lower values and preemptive behavior
     queue(editor, _autocomplete_callback, timeout, busy_timeout, preemptive, args=args, kwargs=kwargs)
 
@@ -431,7 +424,7 @@ def queue(editor, callback, timeout, busy_timeout=None, preemptive=False, args=[
     __lock_.acquire()
     try:
         return callback(editor, *args, **kwargs)
-        #QUEUE[editor.id()] = (editor, callback, args, kwargs)
+        #QUEUE[id(editor)] = (editor, callback, args, kwargs)
         if now < __signaled_ + timeout * 4:
             timeout = busy_timeout or timeout
 
@@ -589,9 +582,9 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
             despair = 0
             return
     logger(editor, 'info', "processing `%s': please wait..." % lang)
-    is_scratch = editor.is_scratch()
-    is_dirty = editor.is_dirty()
-    vid = editor.id()
+    is_scratch = editor.isScratch()
+    is_dirty = editor.isDirty()
+    vid = id(editor)
     folders = getattr(editor.window(), 'folders', lambda: [])()  # FIXME: it's like this for backward compatibility (<= 2060)
     folders_id = str(hash(frozenset(folders)))
     editor_settings = editor.settings()
@@ -856,10 +849,11 @@ def codeintel(editor, path, content, lang, pos, forms, callback=None, timeout=70
             print(msg, file=condeintel_log_file)
 
             def _callback():
-                editor_sel = editor.sel()
-                if editor_sel and editor.line(editor_sel[0]) == editor.line(pos):
+                text = editor.currentWord()
+                if text:
                     callback(*ret)
             logger(editor, 'info', "")
+            _callback()
             #sublime.set_timeout(_callback, 0)
         else:
             msg = "Just finished indexing '%s'! Please try again. Full CodeIntel took %s" % (lang, timestr)
@@ -899,43 +893,6 @@ def tryReadDict(filename, dictToUpdate):
             updateCodeIntelDict(dictToUpdate, eval(file.read()))
         finally:
             file.close()
-
-
-def tryGetMTime(filename):
-    if filename:
-        return os.stat(filename)[stat.ST_MTIME]
-    return 0
-
-
-def _get_git_revision(path):
-    path = os.path.join(path, '.git')
-    if os.path.exists(path):
-        revision_file = os.path.join(path, 'refs', 'heads', 'master')
-        if os.path.isfile(revision_file):
-            fh = open(revision_file, 'r')
-            try:
-                return fh.read().strip()
-            finally:
-                fh.close()
-
-
-def get_revision(path=None):
-    """
-    :returns: Revision number of this branch/checkout, if available. None if
-        no revision number can be determined.
-    """
-    path = os.path.abspath(os.path.normpath(__path__ if path is None else path))
-    while path and path != '/' and path != '\\':
-        rev = _get_git_revision(path)
-        if rev:
-            return u'GIT-%s' % rev
-        uppath = os.path.abspath(os.path.join(path, '..'))
-        if uppath != path:
-            path = uppath
-        else:
-            break
-    return u'GIT-unknown'
-
 
 ALL_SETTINGS = [
     'codeintel',

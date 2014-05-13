@@ -23,22 +23,37 @@ if prymatex_path not in sys.path:
 
 from codeintel.base import autocomplete
 
-class Selection(object):
-    def end(self):
-        return 1
-    def start(self):
-        return 0
-        
-class Editor(object):
-    def id(self):
-        return 2
-    
-    def sel(self):
-        print("Selection")
-        return [ Selection() ]
+from prymatex.qt.helpers import qapplication
+from prymatex.widgets.texteditor import TextEditWidget
 
+class Editor(TextEditWidget):
+    def __init__(self, *largs, **kwargs):
+        super(Editor, self).__init__(*largs, **kwargs)
+        self.path = None
+        self.lang = "Python"
+        
+    def isScratch(self):
+        return True
+    
+    def isDirty(self):
+        return False
+
+    def settings(self):
+        return {}
+        
+    def keyPressEvent(self, event):
+        super(Editor, self).keyPressEvent(event)
+        autocomplete(editor, 0, 0, ('calltips', 'cplns'), True, args=[self.path, 
+            self.cursorPosition(), self.lang])
+        
+text = """"""
 if __name__ == '__main__':
-    path = None
-    pos = 0
-    lang = "Python"
-    autocomplete(Editor(), 0, 0, ('calltips', 'cplns'), True, args=[path, pos, lang])
+    app = qapplication()
+    editor = Editor()
+    editor.setPlainText(text)
+    editor.show()
+    def exit():
+        app.exit()
+    app.lastWindowClosed.connect(exit)
+    sys.exit(app.exec_())
+
