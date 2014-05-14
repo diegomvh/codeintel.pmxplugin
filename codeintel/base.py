@@ -293,10 +293,11 @@ def guess_lang(editor=None, path=None):
 
     syntax = None
     if editor:
-        syntax = os.path.splitext(os.path.basename(editor.settings().get('syntax')))[0]
+        syntax = editor.syntax().name
 
     vid = id(editor)
     _k_ = '%s::%s' % (syntax, path)
+    
     try:
         return languages[vid][_k_]
     except KeyError:
@@ -304,7 +305,9 @@ def guess_lang(editor=None, path=None):
     languages.setdefault(vid, {})
 
     lang = None
-    _codeintel_syntax_map = dict((k.lower(), v) for k, v in editor.settings().get('codeintel_syntax_map', {}).items())
+    #syntax_map = editor.settings().get('codeintel_syntax_map', {}).items()
+    syntax_map = []
+    _codeintel_syntax_map = dict((k.lower(), v) for k, v in syntax_map)
     _lang = lang = syntax and _codeintel_syntax_map.get(syntax.lower(), syntax)
 
     folders = getattr(editor.window(), 'folders', lambda: [])()  # FIXME: it's like this for backward compatibility (<= 2060)
@@ -317,7 +320,7 @@ def guess_lang(editor=None, path=None):
             _lang = lang = syntax
         else:
             if editor and not path:
-                path = editor.file_name()
+                path = editor.filePath()
             if path:
                 try:
                     _lang = lang = guess_lang_from_path(path)
@@ -325,10 +328,11 @@ def guess_lang(editor=None, path=None):
                     languages[vid][_k_] = None
                     return
 
-    _codeintel_enabled_languages = [l.lower() for l in editor.settings().get('codeintel_enabled_languages', [])]
-    if lang and lang.lower() not in _codeintel_enabled_languages:
-        languages[vid][_k_] = None
-        return None
+    #_codeintel_enabled_languages = [l.lower() for l in editor.settings().get('codeintel_enabled_languages', [])]
+    #_codeintel_enabled_languages = []
+    #if lang and lang.lower() not in _codeintel_enabled_languages:
+    #    languages[vid][_k_] = None
+    #    return None
 
     if not lang and _lang and _lang in ('Console', 'Plain text'):
         if mgr:
@@ -588,10 +592,14 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
     folders = getattr(editor.window(), 'folders', lambda: [])()  # FIXME: it's like this for backward compatibility (<= 2060)
     folders_id = str(hash(frozenset(folders)))
     editor_settings = editor.settings()
-    codeintel_config = editor_settings.get('codeintel_config', {})
-    _codeintel_max_recursive_dir_depth = editor_settings.get('codeintel_max_recursive_dir_depth', 10)
-    _codeintel_scan_files_in_project = editor_settings.get('codeintel_scan_files_in_project', True)
-    _codeintel_selected_catalogs = editor_settings.get('codeintel_selected_catalogs', [])
+    #codeintel_config = editor_settings.get('codeintel_config', {})
+    codeintel_config = {}
+    #_codeintel_max_recursive_dir_depth = editor_settings.get('codeintel_max_recursive_dir_depth', 10)
+    _codeintel_max_recursive_dir_depth = 10
+    #_codeintel_scan_files_in_project = editor_settings.get('codeintel_scan_files_in_project', True)
+    _codeintel_scan_files_in_project = True
+    #_codeintel_selected_catalogs = editor_settings.get('codeintel_selected_catalogs', [])
+    _codeintel_selected_catalogs = []
 
     def _codeintel_scan():
         global despair, despaired
@@ -944,6 +952,7 @@ def reload_settings(editor):
 
 
 def codeintel_enabled(editor, default=None):
-    if editor.settings().get('codeintel') is None:
-        reload_settings(editor)
-    return editor.settings().get('codeintel', default)
+    return True
+    #if editor.settings().get('codeintel') is None:
+    #    reload_settings(editor)
+    #return editor.settings().get('codeintel', default)
