@@ -152,14 +152,9 @@ jump_history_by_window = {}  # map of window id -> collections.deque([], HISTORY
 
 def tooltip_popup(editor, snippets):
     vid = id(editor)
-    print(snippets)
-    completions[vid] = snippets
-    editor.run_command('auto_complete', {
-        'disable_auto_insert': True,
-        'api_completions_only': True,
-        'next_completion_if_showing': False,
-        'auto_complete_commit_on_tab': True,
-    })
+    editor.runCompleter(snippets, disable_auto_insert= True,
+        api_completions_only = True, next_completion_if_showing = False,
+        auto_complete_commit_on_tab = True)
 
 
 def tooltip(editor, calltips, original_pos):
@@ -169,7 +164,6 @@ def tooltip(editor, calltips, original_pos):
 
     snippets = []
     for calltip in calltips:
-        print(calltip)
         tip_info = calltip.split('\n')
         text = ' '.join(tip_info[1:])
         snippet = None
@@ -194,7 +188,11 @@ def tooltip(editor, calltips, original_pos):
             text = tip_info[0] + ' ' + text  # No function match, just add the first line
         if not codeintel_snippets:
             snippet = None
-        snippets.extend((('  ' if i > 0 else '') + l, snippet or '${0}') for i, l in enumerate(tip_info))
+        snippets.append({
+            "display": tip_info[0],
+            "tooltip": "\n".join(tip_info[1:]),
+            "insert": snippet or '${0}'
+        })
 
     if codeintel_tooltips == 'popup':
         tooltip_popup(editor, snippets)
@@ -368,12 +366,11 @@ def autocomplete(editor, timeout, busy_timeout, forms, preemptive=False, args=[]
                 )
                 if _completions:
                     # Show autocompletions:
-                    editor.runCompleter(_completions, {
-                        'disable_auto_insert': True,
-                        'api_completions_only': True,
-                        'next_completion_if_showing': False,
-                        'auto_complete_commit_on_tab': True,
-                    })
+                    editor.runCompleter(_completions,
+                        disable_auto_insert = True,
+                        api_completions_only = True,
+                        next_completion_if_showing = False,
+                        auto_complete_commit_on_tab = True)
             if calltips:
                 tooltip(editor, calltips, original_pos)
 
