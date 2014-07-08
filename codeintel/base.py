@@ -152,6 +152,7 @@ jump_history_by_window = {}  # map of window id -> collections.deque([], HISTORY
 
 def tooltip_popup(editor, snippets):
     vid = id(editor)
+    print(snippets)
     completions[vid] = snippets
     editor.run_command('auto_complete', {
         'disable_auto_insert': True,
@@ -168,6 +169,7 @@ def tooltip(editor, calltips, original_pos):
 
     snippets = []
     for calltip in calltips:
+        print(calltip)
         tip_info = calltip.split('\n')
         text = ' '.join(tip_info[1:])
         snippet = None
@@ -355,7 +357,6 @@ def autocomplete(editor, timeout, busy_timeout, forms, preemptive=False, args=[]
         vid = id(editor)
 
         def _trigger(calltips, cplns=None):
-            print(calltips, cplns)
             if cplns is not None or calltips is not None:
                 codeintel_log.info("Autocomplete called (%s) [%s]", lang, ','.join(c for c in ['cplns' if cplns else None, 'calltips' if calltips else None] if c))
 
@@ -367,8 +368,7 @@ def autocomplete(editor, timeout, busy_timeout, forms, preemptive=False, args=[]
                 )
                 if _completions:
                     # Show autocompletions:
-                    completions[vid] = _completions
-                    editor.run_command('auto_complete', {
+                    editor.runCompleter(_completions, {
                         'disable_auto_insert': True,
                         'api_completions_only': True,
                         'next_completion_if_showing': False,

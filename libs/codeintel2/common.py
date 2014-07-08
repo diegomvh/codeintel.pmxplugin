@@ -604,16 +604,16 @@ class LogEvalController(EvalController):
         EvalController.__init__(self)
 
     def debug(self, msg, *args):
-        self.logger.debug(msg, *args)
+        self.logger.debug("%s" % msg, *args)
 
     def info(self, msg, *args):
-        self.logger.info(msg, *args)
+        self.logger.info("%s" % msg, *args)
 
     def warn(self, msg, *args):
-        self.logger.warn(msg, *args)
+        self.logger.warn("%s" % msg, *args)
 
     def error(self, msg, *args):
-        self.logger.error(msg, *args)
+        self.logger.error("%s" % msg, *args)
 
 
 class Evaluator(object):

@@ -40,7 +40,12 @@ class Editor(TextEditWidget):
 
     def settings(self):
         return {}
-        
+    
+    def runCompleter(self, suggestions, already_typed=None, callback = None, 
+        case_insensitive=True, disable_auto_insert = True, api_completions_only = True,
+        next_completion_if_showing = False, auto_complete_commit_on_tab = True):
+        print(suggestions)
+    
     def keyPressEvent(self, event):
         super(Editor, self).keyPressEvent(event)
         autocomplete(editor, 0, 0, ('calltips', 'cplns'), True, args=[self.path, 

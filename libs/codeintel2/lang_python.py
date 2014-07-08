@@ -34,7 +34,7 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-
+from __future__ import unicode_literals
 """Python support for CodeIntel"""
 
 import os
