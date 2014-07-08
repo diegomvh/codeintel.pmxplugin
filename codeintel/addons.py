@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 from prymatex.gui.codeeditor import CodeEditorAddon
-from codeintel.base import (guess_lang, cpln_fillup_chars, autocomplete)
+from codeintel.base import (delay_queue, guess_lang, cpln_fillup_chars, 
+    autocomplete, set_status, status_lock)
 from codeintel.completer import CodeIndentCompletionModel
 
 class CodeIntelAddon(CodeEditorAddon):
@@ -19,14 +20,13 @@ class CodeIntelAddon(CodeEditorAddon):
 
         path = self.editor.filePath()
         lang = guess_lang(self.editor, path)
-        print(lang)
         #if not lang or lang.lower() not in [l.lower() for l in self.editor.settings()[1].get('codeintel_live_enabled_languages', [])]:
         #    return
 
         text, start, end = self.editor.currentWord()
         if not text:
             return
-	pos = self.editor.cursorPosition()
+        pos = self.editor.cursorPosition()
 
         is_fill_char = (text and text[-1] in cpln_fillup_chars.get(lang, ''))
 
@@ -53,6 +53,25 @@ class CodeIntelAddon(CodeEditorAddon):
         
     def on_editor_selectionChanged(self):
         print("selectionChanged")
+        global despair, despaired, old_pos
+        delay_queue(600)  # on movement, delay queue (to make movement responsive)
+        text, start, end = self.editor.currentWord()
+        if not text:
+            return
+
+        rowcol = self.editor.cursorPosition()
+        if old_pos != rowcol:
+            vid = id(self.editor)
+            old_pos = rowcol
+            despair = 1000
+            despaired = True
+            status_lock.acquire()
+            try:
+                slns = [sid for sid, sln in status_lineno.items() if sln != rowcol[0]]
+            finally:
+                status_lock.release()
+            for vid in slns:
+                set_status(self.editor, "", lid=vid)
     
     def on_editor_aboutToClose(self):
         print("aboutToClose")

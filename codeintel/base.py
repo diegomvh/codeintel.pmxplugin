@@ -921,7 +921,7 @@ ALL_SETTINGS = [
 
 def settings_changed():
     for window in sublime.windows():
-        for editor in window.views():
+        for editor in window.editors():
             reload_settings(editor)
 
 

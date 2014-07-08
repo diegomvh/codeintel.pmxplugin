@@ -86,7 +86,7 @@ import glob
 import time
 import stat
 import types
-from cStringIO import StringIO
+import io
 from functools import partial
 
 # this particular ET is different from xml.etree and is expected
@@ -640,7 +640,7 @@ class AST2CIXVisitor:
                     defaultNode = node.defaults[i-defaultArgsBaseIndex]
                     try:
                         default = self._getExprRepr(defaultNode)
-                    except PythonCILEError, ex:
+                    except PythonCILEError as ex:
                         raise PythonCILEError("unexpected default argument node "
                                               "type for Function '%s': %s"
                                               % (node.name, ex))
@@ -673,7 +673,7 @@ class AST2CIXVisitor:
                     defaultNode = node.defaults[i-defaultArgsBaseIndex]
                     try:
                         argument["default"] = self._getExprRepr(defaultNode)
-                    except PythonCILEError, ex:
+                    except PythonCILEError as ex:
                         raise PythonCILEError("unexpected default argument node "
                                               "type for Function '%s': %s"
                                               % (node.name, ex))
@@ -1355,7 +1355,7 @@ class AST2CIXVisitor:
 
 def _quietCompilerParse(content):
     oldstderr = sys.stderr
-    sys.stderr = StringIO()
+    sys.stderr = io.StringIO()
     try:
         return compiler.parse(content)
     finally:
@@ -1364,7 +1364,7 @@ def _quietCompilerParse(content):
 
 def _quietCompile(source, filename, kind):
     oldstderr = sys.stderr
-    sys.stderr = StringIO()
+    sys.stderr = io.StringIO()
     try:
         return compile(source, filename, kind)
     finally:
@@ -1389,17 +1389,17 @@ def _getAST(content):
     ast_ = None
     try:
         ast_ = _quietCompilerParse(content)
-    except SyntaxError, ex:
+    except SyntaxError as ex:
         errlineno = ex.lineno
         log.debug("compiler parse #1: syntax error on line %d", errlineno)
-    except parser.ParserError, ex:
+    except parser.ParserError as ex:
         log.debug("compiler parse #1: parse error")
         # Try to get the offending line number.
         # compile() only likes LFs for EOLs.
         lfContent = content.replace("\r\n", "\n").replace("\r", "\n")
         try:
             _quietCompile(lfContent, "dummy.py", "exec")
-        except SyntaxError, ex2:
+        except SyntaxError as ex2:
             errlineno = ex2.lineno
         except:
             pass
@@ -1425,17 +1425,17 @@ def _getAST(content):
         errlineno2 = None
         try:
             ast_ = _quietCompilerParse(newContent)
-        except SyntaxError, ex:
+        except SyntaxError as ex:
             errlineno2 = ex.lineno
             log.debug("compiler parse #2: syntax error on line %d", errlineno)
-        except parser.ParserError, ex:
+        except parser.ParserError as ex:
             log.debug("compiler parse #2: parse error")
             # Try to get the offending line number.
             # compile() only likes LFs for EOLs.
             lfContent = newContent.replace("\r\n", "\n").replace("\r", "\n")
             try:
                 _quietCompile(lfContent, "dummy.py", "exec")
-            except SyntaxError, ex2:
+            except SyntaxError as ex2:
                 errlineno2 = ex2.lineno
             except:
                 pass
@@ -1532,7 +1532,7 @@ def _clean_func_args(defn):
                     py2.append(arg)
 
         cleared = tdparser.arg_list_py(py2)
-    except tdparser.ParseError, ex:
+    except tdparser.ParseError as ex:
         cleared = argdef
         log.exception("Couldn't parse (%r)" % argdef)
 
@@ -1572,7 +1572,7 @@ def scan_cix(content, filename, md5sum=None, mtime=None, lang="Python"):
     codeintel = scan_et(content, filename, md5sum, mtime, lang)
     tree = et.ElementTree(codeintel)
 
-    stream = StringIO()
+    stream = io.StringIO()
 
     # this is against the W3C spec, but ElementTree wants it lowercase
     tree.write(stream, "utf-8")
@@ -1642,7 +1642,7 @@ def scan_et(content, filename, md5sum=None, mtime=None, lang="Python"):
         ast_ = _getAST(content)
         if _gClockIt:
             sys.stdout.write(" (ast:%.3fs)" % (_gClock()-_gStartTime))
-    except Exception, ex:
+    except Exception as ex:
         file = et.Element('file', _et_attrs(dict(lang=lang,
                                                  path=path,
                                                  error=str(ex))))
@@ -1683,7 +1683,7 @@ def main(argv):
         opts, args = getopt.getopt(argv[1:], "Vvhf:cL:",
             ["version", "verbose", "help", "filename=", "md5=", "mtime=",
              "clock", "language="])
-    except getopt.GetoptError, ex:
+    except getopt.GetoptError as ex:
         log.error(str(ex))
         log.error("Try `pythoncile --help'.")
         return 1
@@ -1699,7 +1699,7 @@ def main(argv):
             return
         elif opt in ("-V", "--version"):
             ver = '.'.join([str(part) for part in _version_])
-            print "pythoncile %s" % ver
+            print("pythoncile %s" % ver)
             return
         elif opt in ("-v", "--verbose"):
             numVerboses += 1
@@ -1769,10 +1769,10 @@ def main(argv):
                 sys.stdout.write(" %.3fs\n" % (_gClock()-_gStartTime))
             elif data:
                 sys.stdout.write(data)
-    except PythonCILEError, ex:
+    except PythonCILEError as ex:
         log.error(str(ex))
         if log.isEnabledFor(logging.DEBUG):
-            print
+            print()
             import traceback
             traceback.print_exception(*sys.exc_info())
         return 1
