@@ -6,7 +6,8 @@ import Queue
 from prymatex.qt import  QtCore
 from prymatex.gui.codeeditor import CodeEditorAddon
 from codeintel.base import (delay_queue, guess_lang, cpln_fillup_chars, 
-    autocomplete, set_status, status_lock, editor_close, query_completions)
+    autocomplete, set_status, status_lock, editor_close, query_completions,
+    thread_finalize)
     
 class CodeIntelAddon(CodeEditorAddon):
     def initialize(self, **kwargs):
@@ -20,9 +21,13 @@ class CodeIntelAddon(CodeEditorAddon):
         
         self.editor.textChanged.connect(self.on_editor_textChanged)
         self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
+        self.application.aboutToQuit.connect(self.on_application_aboutToQuit)
         #self.editor.selectionChanged.connect(self.on_editor_selectionChanged)
         
         self.old_pos = None
+
+    def on_application_aboutToQuit(self):
+        thread_finalize()
 
     def on_editor_textChanged(self):
         # Ver si esta activo el autocompletado
