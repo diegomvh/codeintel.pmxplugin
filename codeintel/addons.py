@@ -99,6 +99,7 @@ class CodeIntelAddon(CodeEditorAddon):
     def _handle_command(self):
         self._rsock.recv(1)
         command, arguments = self._queue.get()
+        print(command, arguments)
         method = getattr(self, command, None)
         if method is not None:
             method(arguments)

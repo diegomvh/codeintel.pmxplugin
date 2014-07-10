@@ -152,6 +152,7 @@ jump_history_by_window = {}  # map of window id -> collections.deque([], HISTORY
 
 def tooltip_popup(editor, snippets):
     vid = id(editor)
+    print("tooltip_popup", snippets)
     completions[vid] = snippets
     editor.run_command('auto_complete', {
         'disable_auto_insert': True,
