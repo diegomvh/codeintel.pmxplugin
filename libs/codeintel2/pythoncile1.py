@@ -105,8 +105,10 @@ VERSION = sys.version_info[:2]
 
 if VERSION >= (3, 3):
     PythonStrings = (ast.Str, ast.Bytes)
+    node_arg_name = lambda arg: arg.arg
 elif VERSION >= (2, 6):
     PythonStrings = (ast.Str, )
+    node_arg_name = lambda arg: arg.id
 
 #---- exceptions
 
@@ -657,7 +659,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
             varargsIndex = kwargsIndex = None
         sigArgs = []
         for i in range(len(node_args.args)):
-            argName = node_args.args[i].id
+            argName = node_arg_name(node_args.args[i])
             argument = {"name": argName,
                         "nspath": nspath + (argName,),
                         "doc": None,
@@ -1307,7 +1309,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
                 varargsIndex = kwargsIndex = None
             sigArgs = []
             for i in range(len(node_args.args)):
-                argName = node_args.args[i].id
+                argName = node_arg_anem(node_args.args[i])
                 if i == kwargsIndex:
                     sigArgs.append("**" + argName)
                 elif i == varargsIndex:

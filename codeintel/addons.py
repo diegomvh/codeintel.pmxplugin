@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
 import socket
-import Queue
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 
 from prymatex.qt import  QtCore
 from prymatex.gui.codeeditor import CodeEditorAddon
@@ -14,7 +17,7 @@ class CodeIntelAddon(CodeEditorAddon):
         super(CodeIntelAddon, self).initialize(**kwargs)
         
         self._rsock, self._wsock = socket.socketpair()
-        self._queue = Queue.Queue()
+        self._queue = queue.Queue()
         self._notifier = QtCore.QSocketNotifier(self._rsock.fileno(),
                                                 QtCore.QSocketNotifier.Read)
         self._notifier.activated.connect(self._handle_command)
@@ -95,7 +98,7 @@ class CodeIntelAddon(CodeEditorAddon):
     # ------------------ Called by Python thread
     def run_command(self, command, arguments):
         self._queue.put((command, arguments))
-        self._wsock.send('!')
+        self._wsock.send(b'!')
         
     def set_status(self, lid, status):
         print(lid, status)
