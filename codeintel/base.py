@@ -152,9 +152,13 @@ jump_history_by_window = {}  # map of window id -> collections.deque([], HISTORY
 
 def tooltip_popup(editor, snippets):
     vid = id(editor)
-    editor.runCompleter(snippets, disable_auto_insert= True,
-        api_completions_only = True, next_completion_if_showing = False,
-        auto_complete_commit_on_tab = True)
+    completions[vid] = snippets
+    editor.run_command('auto_complete', {
+        'disable_auto_insert': True,
+        'api_completions_only': True,
+        'next_completion_if_showing': False,
+        'auto_complete_commit_on_tab': True,
+    })
 
 
 def tooltip(editor, calltips, original_pos):
@@ -293,7 +297,7 @@ def guess_lang(editor=None, path=None):
 
     syntax = None
     if editor:
-        syntax = editor.syntax().name
+        syntax = editor.syntax_name()
 
     vid = id(editor)
     _k_ = '%s::%s' % (syntax, path)
@@ -320,7 +324,7 @@ def guess_lang(editor=None, path=None):
             _lang = lang = syntax
         else:
             if editor and not path:
-                path = editor.filePath()
+                path = editor.file_name()
             if path:
                 try:
                     _lang = lang = guess_lang_from_path(path)
@@ -346,11 +350,11 @@ def guess_lang(editor=None, path=None):
 
 def autocomplete(editor, timeout, busy_timeout, forms, preemptive=False, args=[], kwargs={}):
     def _autocomplete_callback(editor, path, original_pos, lang):
-        pos = editor.cursorPosition()
+        pos = editor.cursor_position()
         if not pos or pos != original_pos:
             return
 
-        text, start, end = editor.currentWord()
+        text, start, end = editor.current_word()
         
         vid = id(editor)
 
@@ -361,20 +365,23 @@ def autocomplete(editor, timeout, busy_timeout, forms, preemptive=False, args=[]
             if cplns is not None:
                 function = None if 'import ' in text else 'function'
                 _completions = sorted(
-                    [('%s  (%s)' % (n, t), n + ('($0)' if t == function else '')) for t, n in cplns],
-                    key=lambda o: o[1]
+                    [{ "display": '%s  (%s)' % (n, t),
+                       "insert": n + ('($0)' if t == function else '') } for t, n in cplns],
+                    key=lambda o: o["insert"]
                 )
                 if _completions:
                     # Show autocompletions:
-                    editor.runCompleter(_completions,
-                        disable_auto_insert = True,
-                        api_completions_only = True,
-                        next_completion_if_showing = False,
-                        auto_complete_commit_on_tab = True)
+                    completions[vid] = _completions
+                    editor.run_command('auto_complete', {
+                        'disable_auto_insert': True,
+                        'api_completions_only': True,
+                        'next_completion_if_showing': False,
+                        'auto_complete_commit_on_tab': True,
+                    })
             if calltips:
                 tooltip(editor, calltips, original_pos)
 
-        content = editor.toPlainText()
+        content = editor.content()
         codeintel(editor, path, content, lang, pos, forms, _trigger)
     # If it's a fill char, queue using lower values and preemptive behavior
     queue(editor, _autocomplete_callback, timeout, busy_timeout, preemptive, args=args, kwargs=kwargs)
@@ -583,8 +590,8 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
             despair = 0
             return
     logger(editor, 'info', "processing `%s': please wait..." % lang)
-    is_scratch = editor.isScratch()
-    is_dirty = editor.isDirty()
+    is_scratch = editor.is_scratch()
+    is_dirty = editor.is_dirty()
     vid = id(editor)
     folders = getattr(editor.window(), 'folders', lambda: [])()  # FIXME: it's like this for backward compatibility (<= 2060)
     folders_id = str(hash(frozenset(folders)))
@@ -854,7 +861,7 @@ def codeintel(editor, path, content, lang, pos, forms, callback=None, timeout=70
             print(msg, file=condeintel_log_file)
 
             def _callback():
-                text = editor.currentWord()
+                text, _, _ = editor.current_word()
                 if text:
                     callback(*ret)
             logger(editor, 'info', "")
@@ -953,3 +960,19 @@ def codeintel_enabled(editor, default=None):
     #if editor.settings().get('codeintel') is None:
     #    reload_settings(editor)
     #return editor.settings().get('codeintel', default)
+
+def editor_close(editor):
+    vid = id(editor)
+    if vid in completions:
+        del completions[vid]
+    if vid in languages:
+        del languages[vid]
+    codeintel_cleanup(editor.file_name())
+
+def query_completions(editor):
+    vid = id(editor)
+    if vid in completions:
+        _completions = completions[vid]
+        del completions[vid]
+        return _completions
+    return []
