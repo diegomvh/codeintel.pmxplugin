@@ -6,6 +6,7 @@ try:
 except ImportError:
     import Queue as queue
 
+from prymatex.core.settings import ConfigurableItem
 from prymatex.qt import  QtCore
 from prymatex.gui.codeeditor import CodeEditorAddon
 from codeintel.base import (delay_queue, guess_lang, cpln_fillup_chars, 
@@ -13,6 +14,8 @@ from codeintel.base import (delay_queue, guess_lang, cpln_fillup_chars,
     thread_finalize)
     
 class CodeIntelAddon(CodeEditorAddon):
+    codeintelLive = ConfigurableItem(default = True)
+    
     def initialize(self, **kwargs):
         super(CodeIntelAddon, self).initialize(**kwargs)
         
@@ -34,8 +37,8 @@ class CodeIntelAddon(CodeEditorAddon):
 
     def on_editor_textChanged(self):
         # Ver si esta activo el autocompletado
-        #if not self.editor.settings()[1].get('codeintel_live', True):
-        #    return
+        if not self.codeintelLive:
+            return
 
         path = self.editor.filePath()
         lang = guess_lang(self, path)
@@ -49,6 +52,12 @@ class CodeIntelAddon(CodeEditorAddon):
 
         is_fill_char = (text and text[-1] in cpln_fillup_chars.get(lang, ''))
 
+        autocomplete(self, 
+            0 if is_fill_char else 200, 
+            50 if is_fill_char else 600, 
+            ('calltips',), 
+            is_fill_char, args=[path, pos, lang])
+        
         # Ahora tengo que ver si no se esta mostrando el completer
         # print('on_modified', self.editor.command_history(1), self.editor.command_history(0), self.editor.command_history(-1))
         #if (not hasattr(self.editor, 'command_history') or self.editor.command_history(1)[1] is None and (
@@ -67,8 +76,6 @@ class CodeIntelAddon(CodeEditorAddon):
         #    autocomplete(self.editor, 0 if is_fill_char else 200, 50 if is_fill_char else 600, forms, is_fill_char, args=[path, pos, lang])
         #else:
         #    self.editor.run_command('hide_auto_complete')
-        forms = ('calltips', 'cplns')
-        autocomplete(self, 0 if is_fill_char else 200, 50 if is_fill_char else 600, forms, is_fill_char, args=[path, pos, lang])
         
     def on_editor_selectionChanged(self):
         print("selectionChanged")
@@ -115,8 +122,14 @@ class CodeIntelAddon(CodeEditorAddon):
     def auto_complete(self, disable_auto_insert = True, api_completions_only = True,
         next_completion_if_showing = False, auto_complete_commit_on_tab = True):
         completions = query_completions(self)
-        self.editor.runCompleter(completions)
+        self.editor.runCompleter(completions,
+            callback = self.completer_callback)
 
+    # ------------------ Completer callback
+    def completer_callback(self, suggestion):
+        self.editor.defaultCompletionCallback(suggestion)
+        print(suggestion)
+        
     # ------------------ Editor actions
     def settings(self):
         return {}
