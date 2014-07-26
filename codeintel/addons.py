@@ -10,11 +10,14 @@ from prymatex.core.settings import ConfigurableItem
 from prymatex.qt import  QtCore
 from prymatex.gui.codeeditor import CodeEditorAddon
 from codeintel.base import (delay_queue, guess_lang, cpln_fillup_chars, 
-    autocomplete, set_status, status_lock, editor_close, query_completions,
+    autocomplete, set_status, status_lock, addon_close, query_completions,
     thread_finalize)
     
 class CodeIntelAddon(CodeEditorAddon):
-    codeintelLive = ConfigurableItem(default = True)
+    codeintel = ConfigurableItem(default = False)
+    codeintel_live = ConfigurableItem(default = True)
+    codeintel_syntax_map = ConfigurableItem(default = {})
+    codeintel_enabled_languages = ConfigurableItem(default = [])
     
     def initialize(self, **kwargs):
         super(CodeIntelAddon, self).initialize(**kwargs)
@@ -37,13 +40,13 @@ class CodeIntelAddon(CodeEditorAddon):
 
     def on_editor_textChanged(self):
         # Ver si esta activo el autocompletado
-        if not self.codeintelLive:
+        if not self.codeintel_live:
             return
 
         path = self.editor.filePath()
         lang = guess_lang(self, path)
-        #if not lang or lang.lower() not in [l.lower() for l in self.editor.settings()[1].get('codeintel_live_enabled_languages', [])]:
-        #    return
+        if not lang or lang.lower() not in [ l.lower() for l in self.codeintel_live_enabled_languages ]:
+            return
 
         text, start, end = self.editor.currentWord()
         if not text:
@@ -52,6 +55,7 @@ class CodeIntelAddon(CodeEditorAddon):
 
         is_fill_char = (text and text[-1] in cpln_fillup_chars.get(lang, ''))
 
+        print("run")
         autocomplete(self, 
             0 if is_fill_char else 200, 
             50 if is_fill_char else 600, 
@@ -100,7 +104,7 @@ class CodeIntelAddon(CodeEditorAddon):
                 set_status(self, "", lid=vid)
     
     def on_editor_aboutToClose(self):
-        editor_close(self)
+        addon_close(self)
 
     # ------------------ Called by Python thread
     def run_command(self, command, arguments):

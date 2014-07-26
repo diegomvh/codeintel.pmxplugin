@@ -310,8 +310,7 @@ def guess_lang(addon=None, path=None):
     languages.setdefault(vid, {})
 
     lang = None
-    #syntax_map = addon.settings().get('codeintel_syntax_map', {}).items()
-    syntax_map = []
+    syntax_map = addon.codeintel_syntax_map.items()
     _codeintel_syntax_map = dict((k.lower(), v) for k, v in syntax_map)
     _lang = lang = syntax and _codeintel_syntax_map.get(syntax.lower(), syntax)
 
@@ -333,11 +332,10 @@ def guess_lang(addon=None, path=None):
                     languages[vid][_k_] = None
                     return
 
-    #_codeintel_enabled_languages = [l.lower() for l in addon.settings().get('codeintel_enabled_languages', [])]
-    #_codeintel_enabled_languages = []
-    #if lang and lang.lower() not in _codeintel_enabled_languages:
-    #    languages[vid][_k_] = None
-    #    return None
+    _codeintel_enabled_languages = [ l.lower() for l in addon.codeintel_enabled_languages ]
+    if lang and lang.lower() not in _codeintel_enabled_languages:
+        languages[vid][_k_] = None
+        return None
 
     if not lang and _lang and _lang in ('Console', 'Plain text'):
         if mgr:
