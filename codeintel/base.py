@@ -150,11 +150,11 @@ status_lock = threading.Lock()
 HISTORY_SIZE = 64
 jump_history_by_window = {}  # map of window id -> collections.deque([], HISTORY_SIZE)
 
-def tooltip_popup(editor, snippets):
-    vid = id(editor)
+def tooltip_popup(addon, snippets):
+    vid = id(addon)
     print("tooltip_popup", snippets)
     completions[vid] = snippets
-    editor.run_command('auto_complete', {
+    addon.run_command('auto_complete', {
         'disable_auto_insert': True,
         'api_completions_only': True,
         'next_completion_if_showing': False,
@@ -162,10 +162,10 @@ def tooltip_popup(editor, snippets):
     })
 
 
-def tooltip(editor, calltips, original_pos):
-    editor_settings = editor.settings()
-    codeintel_snippets = editor_settings.get('codeintel_snippets', True)
-    codeintel_tooltips = editor_settings.get('codeintel_tooltips', 'popup')
+def tooltip(addon, calltips, original_pos):
+    addon_settings = addon.settings()
+    codeintel_snippets = addon_settings.get('codeintel_snippets', True)
+    codeintel_tooltips = addon_settings.get('codeintel_tooltips', 'popup')
 
     snippets = []
     for calltip in calltips:
@@ -200,12 +200,12 @@ def tooltip(editor, calltips, original_pos):
         })
 
     if codeintel_tooltips == 'popup':
-        tooltip_popup(editor, snippets)
+        tooltip_popup(addon, snippets)
     elif codeintel_tooltips in ('status', 'panel'):
         if codeintel_tooltips == 'status':
-            set_status(editor, 'tip', text, timeout=15000)
+            set_status(addon, 'tip', text, timeout=15000)
         else:
-            window = editor.window()
+            window = addon.window()
             output_panel = window.get_output_panel('tooltips')
             output_panel.set_read_only(False)
             text = '\n'.join(list(zip(*snippets))[0])
@@ -217,22 +217,22 @@ def tooltip(editor, calltips, original_pos):
         if snippets and codeintel_snippets:
             # Insert function call snippets:
             # func = m.group(1)
-            # scope = editor.scope_name(pos)
-            # editor.run_command('new_snippet', {'contents': snippets[0][0], 'tab_trigger': func, 'scope': scope})  # FIXME: Doesn't add the new snippet... is it possible to do so?
+            # scope = addon.scope_name(pos)
+            # addon.run_command('new_snippet', {'contents': snippets[0][0], 'tab_trigger': func, 'scope': scope})  # FIXME: Doesn't add the new snippet... is it possible to do so?
             def _insert_snippet():
                 # Check to see we are still at a position where the snippet is wanted:
-                editor_sel = editor.sel()
-                if not editor_sel:
+                addon_sel = addon.sel()
+                if not addon_sel:
                     return
-                sel = editor_sel[0]
+                sel = addon_sel[0]
                 pos = sel.end()
                 if not pos or pos != original_pos:
                     return
-                editor.run_command('insert_snippet', {'contents': snippets[0][0]})
+                addon.run_command('insert_snippet', {'contents': snippets[0][0]})
             #sublime.set_timeout(_insert_snippet, 500)  # Delay snippet insertion a bit... it's annoying some times
 
 
-def set_status(editor, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', logger=None):
+def set_status(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', logger=None):
     if timeout is None:
         timeout = {'error': 3000, 'warning': 5000, 'info': 10000,
                     'event': 10000}.get(ltype, 3000)
@@ -252,8 +252,8 @@ def set_status(editor, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', 
         status_lock.release()
 
     def _set_status():
-        editor_sel = editor.sel()
-        lineno = editor.rowcol(editor_sel[0].end())[0] if editor_sel else 0
+        addon_sel = addon.sel()
+        lineno = addon.rowcol(addon_sel[0].end())[0] if addon_sel else 0
         status_lock.acquire()
         try:
             current_type, current_msg, current_order = status_msg.get(lid, [None, None, 0])
@@ -261,7 +261,7 @@ def set_status(editor, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', 
                 print("+", "%s: %s" % (ltype.capitalize(), msg), file=condeintel_log_file)
                 (logger or log.info)(msg)
                 if ltype != 'debug':
-                    editor.set_status(lid, "%s: %s" % (ltype.capitalize(), msg))
+                    addon.set_status(lid, "%s: %s" % (ltype.capitalize(), msg))
                     status_msg[lid] = [ltype, msg, order]
                 if 'warning' not in lid:
                     status_lineno[lid] = lineno
@@ -272,7 +272,7 @@ def set_status(editor, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', 
         status_lock.acquire()
         try:
             if msg == status_msg.get(lid, [None, None, 0])[1]:
-                editor.erase_status(lid)
+                addon.erase_status(lid)
                 status_msg[lid][1] = None
                 if lid in status_lineno:
                     del status_lineno[lid]
@@ -286,21 +286,21 @@ def set_status(editor, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', 
     #    sublime.set_timeout(_erase_status, delay or 0)
 
 
-def logger(editor, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel'):
+def logger(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel'):
     if msg is None:
         msg, ltype = ltype, 'info'
-    set_status(editor, ltype, msg, timeout=timeout, delay=delay, lid=lid + '-' + ltype, logger=getattr(log, ltype, None))
+    set_status(addon, ltype, msg, timeout=timeout, delay=delay, lid=lid + '-' + ltype, logger=getattr(log, ltype, None))
 
 
-def guess_lang(editor=None, path=None):
-    if not editor or not codeintel_enabled(editor):
+def guess_lang(addon=None, path=None):
+    if not addon or not codeintel_enabled(addon):
         return None
 
     syntax = None
-    if editor:
-        syntax = editor.syntax_name()
+    if addon:
+        syntax = addon.syntax_name()
 
-    vid = id(editor)
+    vid = id(addon)
     _k_ = '%s::%s' % (syntax, path)
     
     try:
@@ -310,12 +310,12 @@ def guess_lang(editor=None, path=None):
     languages.setdefault(vid, {})
 
     lang = None
-    #syntax_map = editor.settings().get('codeintel_syntax_map', {}).items()
+    #syntax_map = addon.settings().get('codeintel_syntax_map', {}).items()
     syntax_map = []
     _codeintel_syntax_map = dict((k.lower(), v) for k, v in syntax_map)
     _lang = lang = syntax and _codeintel_syntax_map.get(syntax.lower(), syntax)
 
-    folders = getattr(editor.window(), 'folders', lambda: [])()  # FIXME: it's like this for backward compatibility (<= 2060)
+    folders = getattr(addon.window(), 'folders', lambda: [])()  # FIXME: it's like this for backward compatibility (<= 2060)
     folders_id = str(hash(frozenset(folders)))
     mgr = codeintel_manager(folders_id)
 
@@ -324,8 +324,8 @@ def guess_lang(editor=None, path=None):
         if mgr.is_citadel_lang(syntax) or mgr.is_cpln_lang(syntax):
             _lang = lang = syntax
         else:
-            if editor and not path:
-                path = editor.file_name()
+            if addon and not path:
+                path = addon.file_name()
             if path:
                 try:
                     _lang = lang = guess_lang_from_path(path)
@@ -333,7 +333,7 @@ def guess_lang(editor=None, path=None):
                     languages[vid][_k_] = None
                     return
 
-    #_codeintel_enabled_languages = [l.lower() for l in editor.settings().get('codeintel_enabled_languages', [])]
+    #_codeintel_enabled_languages = [l.lower() for l in addon.settings().get('codeintel_enabled_languages', [])]
     #_codeintel_enabled_languages = []
     #if lang and lang.lower() not in _codeintel_enabled_languages:
     #    languages[vid][_k_] = None
@@ -341,23 +341,23 @@ def guess_lang(editor=None, path=None):
 
     if not lang and _lang and _lang in ('Console', 'Plain text'):
         if mgr:
-            logger(editor, 'debug', "Invalid language: %s. Available: %s" % (_lang, ', '.join(set(mgr.get_citadel_langs() + mgr.get_cpln_langs()))))
+            logger(addon, 'debug', "Invalid language: %s. Available: %s" % (_lang, ', '.join(set(mgr.get_citadel_langs() + mgr.get_cpln_langs()))))
         else:
-            logger(editor, 'debug', "Invalid language: %s" % _lang)
+            logger(addon, 'debug', "Invalid language: %s" % _lang)
 
     languages[vid][_k_] = lang
     return lang
 
 
-def autocomplete(editor, timeout, busy_timeout, forms, preemptive=False, args=[], kwargs={}):
-    def _autocomplete_callback(editor, path, original_pos, lang):
-        pos = editor.cursor_position()
+def autocomplete(addon, timeout, busy_timeout, forms, preemptive=False, args=[], kwargs={}):
+    def _autocomplete_callback(addon, path, original_pos, lang):
+        pos = addon.cursor_position()
         if not pos or pos != original_pos:
             return
 
-        text, start, end = editor.current_word()
+        text, start, end = addon.current_word()
         
-        vid = id(editor)
+        vid = id(addon)
 
         def _trigger(calltips, cplns=None):
             if cplns is not None or calltips is not None:
@@ -373,19 +373,19 @@ def autocomplete(editor, timeout, busy_timeout, forms, preemptive=False, args=[]
                 if _completions:
                     # Show autocompletions:
                     completions[vid] = _completions
-                    editor.run_command('auto_complete', {
+                    addon.run_command('auto_complete', {
                         'disable_auto_insert': True,
                         'api_completions_only': True,
                         'next_completion_if_showing': False,
                         'auto_complete_commit_on_tab': True,
                     })
             if calltips:
-                tooltip(editor, calltips, original_pos)
+                tooltip(addon, calltips, original_pos)
 
-        content = editor.content()
-        codeintel(editor, path, content, lang, pos, forms, _trigger)
+        content = addon.content()
+        codeintel(addon, path, content, lang, pos, forms, _trigger)
     # If it's a fill char, queue using lower values and preemptive behavior
-    queue(editor, _autocomplete_callback, timeout, busy_timeout, preemptive, args=args, kwargs=kwargs)
+    queue(addon, _autocomplete_callback, timeout, busy_timeout, preemptive, args=args, kwargs=kwargs)
 
 
 _ci_envs_ = {}
@@ -415,7 +415,7 @@ def queue_dispatcher(force=False):
 
 def queue_loop():
     """An infinite loop running the codeintel in a background thread meant to
-        update the editor after user modifies it and then does no further
+        update the addon after user modifies it and then does no further
         modifications for some time as to not slow down the UI with autocompletes."""
     global __signaled_, __signaled_first_
     while __loop_:
@@ -427,13 +427,13 @@ def queue_loop():
         queue_dispatcher()
 
 
-def queue(editor, callback, timeout, busy_timeout=None, preemptive=False, args=[], kwargs={}):
+def queue(addon, callback, timeout, busy_timeout=None, preemptive=False, args=[], kwargs={}):
     global __signaled_, __signaled_first_
     now = time.time()
     __lock_.acquire()
     try:
-        return callback(editor, *args, **kwargs)
-        #QUEUE[id(editor)] = (editor, callback, args, kwargs)
+        return callback(addon, *args, **kwargs)
+        #QUEUE[id(addon)] = (addon, callback, args, kwargs)
         if now < __signaled_ + timeout * 4:
             timeout = busy_timeout or timeout
 
@@ -532,9 +532,9 @@ def codeintel_callbacks(force=False):
         QUEUE.clear()
     finally:
         __lock_.release()
-    for editor, callback, args, kwargs in views:
+    for addon, callback, args, kwargs in views:
         def _callback():
-            callback(editor, *args, **kwargs)
+            callback(addon, *args, **kwargs)
         #sublime.set_timeout(_callback, 0)
     # saving and culling cached parts of the database:
     for folders_id in list(_ci_mgr_.keys()):
@@ -588,27 +588,27 @@ def codeintel_manager(folders_id):
     return mgr
 
 
-def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=None):
+def codeintel_scan(addon, path, content, lang, callback=None, pos=None, forms=None):
     global despair
     for thread in threading.enumerate():
         if thread.isAlive() and thread.name == "scanning thread":
-            logger(editor, 'info', "Updating indexes... The first time this can take a while. Do not despair!", timeout=20000, delay=despair)
+            logger(addon, 'info', "Updating indexes... The first time this can take a while. Do not despair!", timeout=20000, delay=despair)
             despair = 0
             return
-    logger(editor, 'info', "processing `%s': please wait..." % lang)
-    is_scratch = editor.is_scratch()
-    is_dirty = editor.is_dirty()
-    vid = id(editor)
-    folders = getattr(editor.window(), 'folders', lambda: [])()  # FIXME: it's like this for backward compatibility (<= 2060)
+    logger(addon, 'info', "processing `%s': please wait..." % lang)
+    is_scratch = addon.is_scratch()
+    is_dirty = addon.is_dirty()
+    vid = id(addon)
+    folders = getattr(addon.window(), 'folders', lambda: [])()  # FIXME: it's like this for backward compatibility (<= 2060)
     folders_id = str(hash(frozenset(folders)))
-    editor_settings = editor.settings()
-    #codeintel_config = editor_settings.get('codeintel_config', {})
+    addon_settings = addon.settings()
+    #codeintel_config = addon_settings.get('codeintel_config', {})
     codeintel_config = {}
-    #_codeintel_max_recursive_dir_depth = editor_settings.get('codeintel_max_recursive_dir_depth', 10)
+    #_codeintel_max_recursive_dir_depth = addon_settings.get('codeintel_max_recursive_dir_depth', 10)
     _codeintel_max_recursive_dir_depth = 10
-    #_codeintel_scan_files_in_project = editor_settings.get('codeintel_scan_files_in_project', True)
+    #_codeintel_scan_files_in_project = addon_settings.get('codeintel_scan_files_in_project', True)
     _codeintel_scan_files_in_project = True
-    #_codeintel_selected_catalogs = editor_settings.get('codeintel_selected_catalogs', [])
+    #_codeintel_selected_catalogs = addon_settings.get('codeintel_selected_catalogs', [])
     _codeintel_selected_catalogs = []
 
     def _codeintel_scan():
@@ -619,7 +619,7 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
         now = time.time()
 
         mgr = codeintel_manager(folders_id)
-        mgr.db.event_reporter = lambda m: logger(editor, 'event', m)
+        mgr.db.event_reporter = lambda m: logger(addon, 'event', m)
 
         try:
             env = _ci_envs_[vid]
@@ -744,8 +744,8 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
         msgs = []
         if env._valid:
             if forms:
-                set_status(editor, 'tip', "")
-                set_status(editor, 'event', "")
+                set_status(addon, 'tip', "")
+                set_status(addon, 'event', "")
                 msg = "CodeIntel(%s) for %s@%s [%s]" % (', '.join(forms), path, pos, lang)
                 msgs.append(('info', "\n%s\n%s" % (msg, "-" * len(msg))))
 
@@ -765,7 +765,7 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
                     despaired = False
                     msg = "Updating indexes for '%s'... The first time this can take a while." % lang
                     print(msg, file=condeintel_log_file)
-                    logger(editor, 'info', msg, timeout=20000, delay=1000)
+                    logger(addon, 'info', msg, timeout=20000, delay=1000)
                     if not path or is_scratch:
                         buf.scan()  # FIXME: Always scanning unsaved files (since many tabs can have unsaved files, or find other path as ID)
                     else:
@@ -779,14 +779,14 @@ def codeintel_scan(editor, path, content, lang, callback=None, pos=None, forms=N
         if callback:
             msg = "Doing CodeIntel for '%s' (hold on)..." % lang
             print(msg, file=condeintel_log_file)
-            logger(editor, 'info', msg, timeout=20000, delay=1000)
+            logger(addon, 'info', msg, timeout=20000, delay=1000)
             callback(buf, msgs)
         else:
-            logger(editor, 'info', "")
+            logger(addon, 'info', "")
     threading.Thread(target=_codeintel_scan, name="scanning thread").start()
 
 
-def codeintel(editor, path, content, lang, pos, forms, callback=None, timeout=7000):
+def codeintel(addon, path, content, lang, pos, forms, callback=None, timeout=7000):
     start = time.time()
 
     def _codeintel(buf, msgs):
@@ -795,7 +795,7 @@ def codeintel(editor, path, content, lang, pos, forms, callback=None, timeout=70
         defns = None
 
         if not buf:
-            logger(editor, 'warning', "`%s' (%s) is not a language that uses CIX" % (path, lang))
+            logger(addon, 'warning', "`%s' (%s) is not a language that uses CIX" % (path, lang))
             return [None] * len(forms)
 
         try:
@@ -803,12 +803,12 @@ def codeintel(editor, path, content, lang, pos, forms, callback=None, timeout=70
             defn_trg = getattr(buf, 'defn_trg_from_pos', lambda p: None)(pos2bytes(content, pos))
         except (CodeIntelError):
             codeintel_log.exception("Exception! %s:%s (%s)" % (path or '<Unsaved>', pos, lang))
-            logger(editor, 'info', "Error indexing! Please send the log file: '%s" % condeintel_log_filename)
+            logger(addon, 'info', "Error indexing! Please send the log file: '%s" % condeintel_log_filename)
             trg = None
             defn_trg = None
         except:
             codeintel_log.exception("Exception! %s:%s (%s)" % (path or '<Unsaved>', pos, lang))
-            logger(editor, 'info', "Error indexing! Please send the log file: '%s" % condeintel_log_filename)
+            logger(addon, 'info', "Error indexing! Please send the log file: '%s" % condeintel_log_filename)
             raise
         else:
             eval_log_stream = StringIO()
@@ -825,11 +825,11 @@ def codeintel(editor, path, content, lang, pos, forms, callback=None, timeout=70
                 if 'defns' in forms and defn_trg and defn_trg.form == TRG_FORM_DEFN:
                     defns = buf.defns_from_trg(defn_trg, ctlr=ctlr, timeout=20)
             except EvalTimeout:
-                logger(editor, 'info', "Timeout while resolving completions!")
+                logger(addon, 'info', "Timeout while resolving completions!")
             finally:
                 codeintel_log.handlers = _hdlrs
-            logger(editor, 'warning', "")
-            logger(editor, 'event', "")
+            logger(addon, 'warning', "")
+            logger(addon, 'event', "")
             result = False
             merge = ''
             for msg in reversed(eval_log_stream.getvalue().strip().split('\n')):
@@ -845,7 +845,7 @@ def codeintel(editor, path, content, lang, pos, forms, callback=None, timeout=70
                         continue
                     merge = ''
                     if not result and msg.startswith('evaluating '):
-                        set_status(editor, 'warning', msg)
+                        set_status(addon, 'warning', msg)
                         result = True
 
         ret = []
@@ -867,17 +867,17 @@ def codeintel(editor, path, content, lang, pos, forms, callback=None, timeout=70
             print(msg, file=condeintel_log_file)
 
             def _callback():
-                text, _, _ = editor.current_word()
+                text, _, _ = addon.current_word()
                 if text:
                     callback(*ret)
-            logger(editor, 'info', "")
+            logger(addon, 'info', "")
             _callback()
             #sublime.set_timeout(_callback, 0)
         else:
             msg = "Just finished indexing '%s'! Please try again. Full CodeIntel took %s" % (lang, timestr)
             print(msg, file=condeintel_log_file)
-            logger(editor, 'info', msg, timeout=3000)
-    codeintel_scan(editor, path, content, lang, _codeintel, pos, forms)
+            logger(addon, 'info', msg, timeout=3000)
+    codeintel_scan(addon, path, content, lang, _codeintel, pos, forms)
 
 
 def find_back(start_at, look_for):
@@ -935,48 +935,48 @@ def settings_changed():
             reload_settings(editor)
 
 
-def reload_settings(editor):
+def reload_settings(addon):
     '''Restores user settings.'''
     settings_name = 'SublimeCodeIntel'
     settings = sublime.load_settings(settings_name + '.sublime-settings')
     settings.clear_on_change(settings_name)
     settings.add_on_change(settings_name, settings_changed)
 
-    editor_settings = editor.settings()
+    addon_settings = addon.settings()
 
     for setting_name in ALL_SETTINGS:
         if settings.get(setting_name) is not None:
             setting = settings.get(setting_name)
-            editor_settings.set(setting_name, setting)
+            addon_settings.set(setting_name, setting)
 
-    if editor_settings.get('codeintel') is None:
-        editor_settings.set('codeintel', True)
+    if addon_settings.get('codeintel') is None:
+        addon_settings.set('codeintel', True)
 
-    path = editor.file_name()
-    lang = guess_lang(editor, path)
-    if lang and lang.lower() in [l.lower() for l in editor.settings().get('codeintel_live_enabled_languages', [])]:
-        if not editor_settings.get('sublime_auto_complete'):
-            editor_settings.set('auto_complete', False)
+    path = addon.file_name()
+    lang = guess_lang(addon, path)
+    if lang and lang.lower() in [l.lower() for l in addon.settings().get('codeintel_live_enabled_languages', [])]:
+        if not addon_settings.get('sublime_auto_complete'):
+            addon_settings.set('auto_complete', False)
 
-    return editor_settings
+    return addon_settings
 
 
-def codeintel_enabled(editor, default=None):
+def codeintel_enabled(addon, default=None):
     return True
-    #if editor.settings().get('codeintel') is None:
-    #    reload_settings(editor)
-    #return editor.settings().get('codeintel', default)
+    #if addon.settings().get('codeintel') is None:
+    #    reload_settings(addon)
+    #return addon.settings().get('codeintel', default)
 
-def editor_close(editor):
-    vid = id(editor)
+def addon_close(addon):
+    vid = id(addon)
     if vid in completions:
         del completions[vid]
     if vid in languages:
         del languages[vid]
-    codeintel_cleanup(editor.file_name())
+    codeintel_cleanup(addon.file_name())
 
-def query_completions(editor):
-    vid = id(editor)
+def query_completions(addon):
+    vid = id(addon)
     if vid in completions:
         _completions = completions[vid]
         del completions[vid]
