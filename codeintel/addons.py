@@ -143,12 +143,11 @@ class CodeIntelAddon(CodeEditorAddon):
         lang = guess_lang(self, path)
         if not lang or lang.lower() not in [ l.lower() for l in self.codeintel_live_enabled_languages ]:
             return
-        
-        text, start, end = self.editor.currentWord()
-        if not text:
-            return
+            
         pos = self.editor.cursorPosition()
-        is_fill_char = (text and text[-1] in cpln_fillup_chars.get(lang, ''))
+        character = self.editor.document().characterAt(pos - 1)
+        print("char: ", character, ord(character))
+        is_fill_char = (character and character in cpln_fillup_chars.get(lang, ''))
         
         autocomplete(self, 
             0 if is_fill_char else 200, 
