@@ -293,7 +293,7 @@ def logger(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel'):
 
 
 def guess_lang(addon=None, path=None):
-    if not addon or not codeintel_enabled(addon):
+    if not addon or not addon.codeintel:
         return None
 
     syntax = None
@@ -909,61 +909,6 @@ def tryReadDict(filename, dictToUpdate):
             updateCodeIntelDict(dictToUpdate, eval(file.read()))
         finally:
             file.close()
-
-ALL_SETTINGS = [
-    'codeintel',
-    'codeintel_snippets',
-    'codeintel_tooltips',
-    'codeintel_enabled_languages',
-    'codeintel_live',
-    'codeintel_live_enabled_languages',
-    'codeintel_max_recursive_dir_depth',
-    'codeintel_scan_files_in_project',
-    'codeintel_selected_catalogs',
-    'codeintel_syntax_map',
-    'codeintel_scan_exclude_dir',
-    'codeintel_config',
-    'sublime_auto_complete',
-]
-
-
-def settings_changed():
-    for window in sublime.windows():
-        for editor in window.editors():
-            reload_settings(editor)
-
-
-def reload_settings(addon):
-    '''Restores user settings.'''
-    settings_name = 'SublimeCodeIntel'
-    settings = sublime.load_settings(settings_name + '.sublime-settings')
-    settings.clear_on_change(settings_name)
-    settings.add_on_change(settings_name, settings_changed)
-
-    addon_settings = addon.settings()
-
-    for setting_name in ALL_SETTINGS:
-        if settings.get(setting_name) is not None:
-            setting = settings.get(setting_name)
-            addon_settings.set(setting_name, setting)
-
-    if addon_settings.get('codeintel') is None:
-        addon_settings.set('codeintel', True)
-
-    path = addon.file_name()
-    lang = guess_lang(addon, path)
-    if lang and lang.lower() in [l.lower() for l in addon.settings().get('codeintel_live_enabled_languages', [])]:
-        if not addon_settings.get('sublime_auto_complete'):
-            addon_settings.set('auto_complete', False)
-
-    return addon_settings
-
-
-def codeintel_enabled(addon, default=None):
-    return True
-    #if addon.settings().get('codeintel') is None:
-    #    reload_settings(addon)
-    #return addon.settings().get('codeintel', default)
 
 def addon_close(addon):
     vid = id(addon)
