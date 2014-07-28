@@ -146,7 +146,6 @@ class CodeIntelAddon(CodeEditorAddon):
             
         pos = self.editor.cursorPosition()
         character = self.editor.document().characterAt(pos - 1)
-        print("char: ", character, ord(character))
         is_fill_char = (character and character in cpln_fillup_chars.get(lang, ''))
         
         autocomplete(self, 
@@ -243,8 +242,8 @@ class CodeIntelAddon(CodeEditorAddon):
     def content(self):
         return self.editor.toPlainText()
 
-    def current_word(self):
-        return self.editor.currentWord()
+    def word(self):
+        return self.editor.word(direction = "left")
     
     def cursor_position(self):
         return self.editor.cursorPosition()

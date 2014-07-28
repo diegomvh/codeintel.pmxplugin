@@ -353,7 +353,7 @@ def autocomplete(addon, timeout, busy_timeout, forms, preemptive=False, args=[],
         if not pos or pos != original_pos:
             return
 
-        text, start, end = addon.current_word()
+        text, start, end = addon.word()
         
         vid = id(addon)
 
@@ -865,7 +865,7 @@ def codeintel(addon, path, content, lang, pos, forms, callback=None, timeout=700
             print(msg, file=condeintel_log_file)
 
             def _callback():
-                text, _, _ = addon.current_word()
+                text, _, _ = addon.word()
                 if text:
                     callback(*ret)
             logger(addon, 'info', "")

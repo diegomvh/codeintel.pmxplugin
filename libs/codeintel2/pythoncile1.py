@@ -940,7 +940,11 @@ class AST2CIXVisitor(ast.NodeVisitor):
 
     def visit_With(self, node):
         log.info("visit_%s:%s: %r %r", node.__class__.__name__, getattr(node, 'lineno', '?'), self.lines and hasattr(node, 'lineno') and self.lines[node.lineno - 1], node._fields)
-        self._handleUnknownAssignment(node.optional_vars, node.lineno)
+        if hasattr(node, "items"):
+            for item in node.items:
+                self._handleUnknownAssignment(item.context_expr, node.lineno)
+        else:
+            self._handleUnknownAssignment(node.optional_vars, node.lineno)
         self.generic_visit(node)
 
     def visit_Try(self, node):
