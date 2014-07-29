@@ -93,7 +93,6 @@ from codeintel.utils import pos2bytes, get_revision, tryGetMTime
 
 QUEUE = {}  # views waiting to be processed by codeintel
 
-
 # Setup the complex logging (status bar gets stuff from there):
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -150,6 +149,9 @@ status_lock = threading.Lock()
 HISTORY_SIZE = 64
 jump_history_by_window = {}  # map of window id -> collections.deque([], HISTORY_SIZE)
 
+def set_timeout(time, callback, *args, **kwargs):
+    threading.Timer(time, callback, args, kwargs).start()
+
 def tooltip_popup(addon, snippets):
     vid = id(addon)
     print("tooltip_popup", snippets)
@@ -163,9 +165,8 @@ def tooltip_popup(addon, snippets):
 
 
 def tooltip(addon, calltips, original_pos):
-    addon_settings = addon.settings()
-    codeintel_snippets = addon_settings.get('codeintel_snippets', True)
-    codeintel_tooltips = addon_settings.get('codeintel_tooltips', 'popup')
+    codeintel_snippets = addon.codeintel_snippets
+    codeintel_tooltips = addon.codeintel_tooltips
 
     snippets = []
     for calltip in calltips:
@@ -212,7 +213,7 @@ def tooltip(addon, calltips, original_pos):
             output_panel.run_command('tooltip_output', {'output': text})
             output_panel.set_read_only(True)
             window.run_command('show_panel', {'panel': 'output.tooltips'})
-            #sublime.set_timeout(lambda: window.run_command('hide_panel', {'panel': 'output.tooltips'}), 15000)
+            set_timeout(15000, window.run_command, 'hide_panel', {'panel': 'output.tooltips'})
 
         if snippets and codeintel_snippets:
             # Insert function call snippets:
@@ -229,7 +230,7 @@ def tooltip(addon, calltips, original_pos):
                 if not pos or pos != original_pos:
                     return
                 addon.run_command('insert_snippet', {'contents': snippets[0][0]})
-            #sublime.set_timeout(_insert_snippet, 500)  # Delay snippet insertion a bit... it's annoying some times
+            set_timeout(500, _insert_snippet)  # Delay snippet insertion a bit... it's annoying some times
 
 
 def set_status(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', logger=None):
@@ -252,10 +253,10 @@ def set_status(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', l
         status_lock.release()
 
     def _set_status():
-        addon_sel = addon.sel()
-        lineno = addon.rowcol(addon_sel[0].end())[0] if addon_sel else 0
+        lineno = addon.line_number()
         status_lock.acquire()
         try:
+            print("line", lineno)
             current_type, current_msg, current_order = status_msg.get(lid, [None, None, 0])
             if msg != current_msg and order == current_order:
                 print("+", "%s: %s" % (ltype.capitalize(), msg), file=condeintel_log_file)
@@ -278,12 +279,12 @@ def set_status(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', l
                     del status_lineno[lid]
         finally:
             status_lock.release()
-
-    #if msg:
-    #    sublime.set_timeout(_set_status, delay or 0)
-    #    sublime.set_timeout(_erase_status, timeout)
-    #else:
-    #    sublime.set_timeout(_erase_status, delay or 0)
+    print(msg)
+    if msg:
+        set_timeout(delay or 0, _set_status)
+        set_timeout(timeout, _erase_status)
+    else:
+        set_timeout(delay or 0, _erase_status)
 
 
 def logger(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel'):
@@ -314,7 +315,8 @@ def guess_lang(addon=None, path=None):
     _codeintel_syntax_map = dict((k.lower(), v) for k, v in syntax_map)
     _lang = lang = syntax and _codeintel_syntax_map.get(syntax.lower(), syntax)
 
-    folders = getattr(addon.window(), 'folders', lambda: [])()  # FIXME: it's like this for backward compatibility (<= 2060)
+    folders = addon.project_folders()
+    print(folders)
     folders_id = str(hash(frozenset(folders)))
     mgr = codeintel_manager(folders_id)
 
@@ -354,7 +356,7 @@ def autocomplete(addon, timeout, busy_timeout, forms, preemptive=False, args=[],
             return
 
         text, start, end = addon.text()
-        print("text: %s" % text)
+
         vid = id(addon)
 
         def _trigger(calltips, cplns=None):
@@ -430,8 +432,7 @@ def queue(addon, callback, timeout, busy_timeout=None, preemptive=False, args=[]
     now = time.time()
     __lock_.acquire()
     try:
-        return callback(addon, *args, **kwargs)
-        #QUEUE[id(addon)] = (addon, callback, args, kwargs)
+        QUEUE[id(addon)] = (addon, callback, args, kwargs)
         if now < __signaled_ + timeout * 4:
             timeout = busy_timeout or timeout
 
@@ -439,8 +440,8 @@ def queue(addon, callback, timeout, busy_timeout=None, preemptive=False, args=[]
         _delay_queue(timeout, preemptive)
         if not __signaled_first_:
             __signaled_first_ = __signaled_
-            #print 'first',
-        #print 'queued in', (__signaled_ - now)
+            print('first')
+        print('queued in %s' % (__signaled_ - now))
     finally:
         __lock_.release()
 
@@ -449,7 +450,7 @@ def _delay_queue(timeout, preemptive):
     global __signaled_, __queued_
     now = time.time()
     if not preemptive and now <= __queued_ + 0.01:
-        return  # never delay queues too fast (except preemptively)
+        return # never delay queues too fast (except preemptively)
     __queued_ = now
     _timeout = float(timeout) / 1000
     if __signaled_first_:
@@ -461,15 +462,13 @@ def _delay_queue(timeout, preemptive):
     new__signaled_ = now + _timeout - 0.01
     if __signaled_ >= now - 0.01 and (preemptive or new__signaled_ >= __signaled_ - 0.01):
         __signaled_ = new__signaled_
-        print('delayed to', (preemptive, __signaled_ - now))
+        #print 'delayed to', (preemptive, __signaled_ - now)
 
         def _signal():
             if time.time() < __signaled_:
                 return
             __semaphore_.release()
-        _signal()
-        #sublime.set_timeout(_signal, timeout)
-
+        set_timeout(timeout, _signal)
 
 def delay_queue(timeout):
     __lock_.acquire()
@@ -518,7 +517,7 @@ if not __pre_initialized_:
     # Start a timer
     def _signal_loop():
         __semaphore_.release()
-        #sublime.set_timeout(_signal_loop, 20000)
+        set_timeout(20000, _signal_loop)
     _signal_loop()
 
 
@@ -533,7 +532,7 @@ def codeintel_callbacks(force=False):
     for addon, callback, args, kwargs in views:
         def _callback():
             callback(addon, *args, **kwargs)
-        #sublime.set_timeout(_callback, 0)
+        set_timeout(0, _callback)
     # saving and culling cached parts of the database:
     for folders_id in list(_ci_mgr_.keys()):
         mgr = codeintel_manager(folders_id)
@@ -597,18 +596,12 @@ def codeintel_scan(addon, path, content, lang, callback=None, pos=None, forms=No
     is_scratch = addon.is_scratch()
     is_dirty = addon.is_dirty()
     vid = id(addon)
-    folders = getattr(addon.window(), 'folders', lambda: [])()  # FIXME: it's like this for backward compatibility (<= 2060)
+    folders = addon.project_folders()
     folders_id = str(hash(frozenset(folders)))
-    addon_settings = addon.settings()
-    #codeintel_config = addon_settings.get('codeintel_config', {})
-    codeintel_config = {}
-    #_codeintel_max_recursive_dir_depth = addon_settings.get('codeintel_max_recursive_dir_depth', 10)
-    _codeintel_max_recursive_dir_depth = 10
-    #_codeintel_scan_files_in_project = addon_settings.get('codeintel_scan_files_in_project', True)
-    _codeintel_scan_files_in_project = True
-    #_codeintel_selected_catalogs = addon_settings.get('codeintel_selected_catalogs', [])
-    _codeintel_selected_catalogs = []
-
+    codeintel_config = addon.codeintel_config
+    _codeintel_max_recursive_dir_depth = addon.codeintel_max_recursive_dir_depth
+    _codeintel_scan_files_in_project = addon.codeintel_scan_files_in_project
+    _codeintel_selected_catalogs = addon.codeintel_selected_catalogs
     def _codeintel_scan():
         global despair, despaired
         env = None
@@ -869,8 +862,7 @@ def codeintel(addon, path, content, lang, pos, forms, callback=None, timeout=700
                 if text:
                     callback(*ret)
             logger(addon, 'info', "")
-            _callback()
-            #sublime.set_timeout(_callback, 0)
+            set_timeout(0, _callback)
         else:
             msg = "Just finished indexing '%s'! Please try again. Full CodeIntel took %s" % (lang, timestr)
             print(msg, file=condeintel_log_file)

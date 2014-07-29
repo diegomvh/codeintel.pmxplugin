@@ -130,7 +130,7 @@ class CodeIntelAddon(CodeEditorAddon):
         #self.editor.selectionChanged.connect(self.on_editor_selectionChanged)
         
         self.old_pos = None
-
+        
     def on_application_aboutToQuit(self):
         thread_finalize()
 
@@ -204,7 +204,7 @@ class CodeIntelAddon(CodeEditorAddon):
         self._wsock.send(b'!')
         
     def set_status(self, lid, status):
-        print(lid, status)
+        print("status", lid, status)
 
     # ------------------ Commands happens in Qt's main thread
     def _handle_command(self):
@@ -232,6 +232,12 @@ class CodeIntelAddon(CodeEditorAddon):
 
     def window(self):
         return self.editor.mainWindow()
+        
+    def project_folders(self):
+        project = self.editor.project()
+        if project is not None:
+            return [ project.path() ]
+        return self.application.projectManager.knownProjects
     
     def syntax_name(self):
         return self.editor.syntax().name
@@ -248,7 +254,11 @@ class CodeIntelAddon(CodeEditorAddon):
     def cursor_position(self):
         return self.editor.cursorPosition()
 
+    def line_number(self):
+        return self.editor.textCursor().blockNumber()
+        
     def is_scratch(self):
+        print(self.editor.isScratch())
         return self.editor.isScratch()
 
     def is_dirty(self):
