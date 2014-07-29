@@ -1313,7 +1313,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
                 varargsIndex = kwargsIndex = None
             sigArgs = []
             for i in range(len(node_args.args)):
-                argName = node_arg_anem(node_args.args[i])
+                argName = node_arg_name(node_args.args[i])
                 if i == kwargsIndex:
                     sigArgs.append("**" + argName)
                 elif i == varargsIndex:

@@ -354,7 +354,7 @@ def autocomplete(addon, timeout, busy_timeout, forms, preemptive=False, args=[],
             return
 
         text, start, end = addon.text()
-        
+        print("text: %s" % text)
         vid = id(addon)
 
         def _trigger(calltips, cplns=None):
@@ -378,7 +378,7 @@ def autocomplete(addon, timeout, busy_timeout, forms, preemptive=False, args=[],
                         'auto_complete_commit_on_tab': True,
                     })
             if calltips:
-                tooltip(addon, calltips, original_pos)
+                tooltip(addon, calltips, pos)
 
         content = addon.content()
         codeintel(addon, path, content, lang, pos, forms, _trigger)

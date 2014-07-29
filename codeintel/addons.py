@@ -243,7 +243,7 @@ class CodeIntelAddon(CodeEditorAddon):
         return self.editor.toPlainText()
 
     def text(self):
-        return self.editor.textUnderCursor(direction = "left")
+        return self.editor.textUnderCursor(direction = "left", search = True)
     
     def cursor_position(self):
         return self.editor.cursorPosition()
