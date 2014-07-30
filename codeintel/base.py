@@ -149,8 +149,8 @@ status_lock = threading.Lock()
 HISTORY_SIZE = 64
 jump_history_by_window = {}  # map of window id -> collections.deque([], HISTORY_SIZE)
 
-def set_timeout(time, callback, *args, **kwargs):
-    threading.Timer(time, callback, args, kwargs).start()
+def set_timeout(delay, callback, *args, **kwargs):
+    threading.Timer(delay / 1000, callback, args, kwargs).start()
 
 def tooltip_popup(addon, snippets):
     vid = id(addon)
@@ -256,7 +256,6 @@ def set_status(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', l
         lineno = addon.line_number()
         status_lock.acquire()
         try:
-            print("line", lineno)
             current_type, current_msg, current_order = status_msg.get(lid, [None, None, 0])
             if msg != current_msg and order == current_order:
                 print("+", "%s: %s" % (ltype.capitalize(), msg), file=condeintel_log_file)
@@ -316,7 +315,6 @@ def guess_lang(addon=None, path=None):
     _lang = lang = syntax and _codeintel_syntax_map.get(syntax.lower(), syntax)
 
     folders = addon.project_folders()
-    print(folders)
     folders_id = str(hash(frozenset(folders)))
     mgr = codeintel_manager(folders_id)
 
@@ -419,11 +417,9 @@ def queue_loop():
         modifications for some time as to not slow down the UI with autocompletes."""
     global __signaled_, __signaled_first_
     while __loop_:
-        #print 'acquire...'
         __semaphore_.acquire()
         __signaled_first_ = 0
         __signaled_ = 0
-        #print 'DISPATCHING!', len(QUEUE)
         queue_dispatcher()
 
 
@@ -440,8 +436,6 @@ def queue(addon, callback, timeout, busy_timeout=None, preemptive=False, args=[]
         _delay_queue(timeout, preemptive)
         if not __signaled_first_:
             __signaled_first_ = __signaled_
-            print('first')
-        print('queued in %s' % (__signaled_ - now))
     finally:
         __lock_.release()
 
@@ -462,7 +456,6 @@ def _delay_queue(timeout, preemptive):
     new__signaled_ = now + _timeout - 0.01
     if __signaled_ >= now - 0.01 and (preemptive or new__signaled_ >= __signaled_ - 0.01):
         __signaled_ = new__signaled_
-        #print 'delayed to', (preemptive, __signaled_ - now)
 
         def _signal():
             if time.time() < __signaled_:
@@ -550,15 +543,15 @@ def codeintel_callbacks(force=False):
 queue_dispatcher = codeintel_callbacks
 
 
-def codeintel_cleanup(id):
-    if id in _ci_envs_:
-        del _ci_envs_[id]
-    if id in _ci_next_scan_:
-        del _ci_next_scan_[id]
+def codeintel_cleanup(vid):
+    if vid in _ci_envs_:
+        del _ci_envs_[vid]
+    if vid in _ci_next_scan_:
+        del _ci_next_scan_[vid]
 
 
 def codeintel_manager(folders_id):
-    folders_id = None
+    #folders_id = None
     global _ci_mgr_, condeintel_log_filename, condeintel_log_file
     mgr = _ci_mgr_.get(folders_id)
     if mgr is None:
@@ -908,7 +901,7 @@ def addon_close(addon):
         del completions[vid]
     if vid in languages:
         del languages[vid]
-    codeintel_cleanup(addon.file_name())
+    codeintel_cleanup(vid)
 
 def query_completions(addon):
     vid = id(addon)

@@ -204,7 +204,10 @@ class CodeIntelAddon(CodeEditorAddon):
         self._wsock.send(b'!')
         
     def set_status(self, lid, status):
-        print("status", lid, status)
+        print("set status", lid, status)
+
+    def erase_status(self, lid):
+        print("erase status", lid)
 
     # ------------------ Commands happens in Qt's main thread
     def _handle_command(self):
@@ -224,7 +227,6 @@ class CodeIntelAddon(CodeEditorAddon):
     # ------------------ Completer callback
     def completer_callback(self, suggestion):
         self.editor.defaultCompletionCallback(suggestion)
-        print(suggestion)
         
     # ------------------ Editor actions
     def settings(self):
@@ -258,7 +260,6 @@ class CodeIntelAddon(CodeEditorAddon):
         return self.editor.textCursor().blockNumber()
         
     def is_scratch(self):
-        print(self.editor.isScratch())
         return self.editor.isScratch()
 
     def is_dirty(self):
