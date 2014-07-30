@@ -105,7 +105,7 @@ stderr_hdlr.setFormatter(logging.Formatter("%(name)s: %(levelname)s: %(message)s
 codeintel_log = logging.getLogger("codeintel")
 condeintel_log_filename = ''
 condeintel_log_file = None
-log = logging.getLogger("SublimeCodeIntel")
+log = logging.getLogger("CodeIntel")
 codeintel_log.handlers = [codeintel_hdlr]
 log.handlers = [stderr_hdlr]
 codeintel_log.setLevel(logging.INFO)  # INFO
@@ -571,7 +571,7 @@ def codeintel_manager(folders_id):
         condeintel_log_filename = os.path.join(mgr.db.base_dir, 'codeintel.log')
         condeintel_log_file = open(condeintel_log_filename, 'w', 1)
         codeintel_log.handlers = [logging.StreamHandler(condeintel_log_file)]
-        msg = "Starting logging SublimeCodeIntel v%s rev %s (%s) on %s" % (VERSION, get_revision()[:12], os.stat(__file__)[stat.ST_MTIME], datetime.datetime.now().ctime())
+        msg = "Starting logging CodeIntel v%s rev %s (%s) on %s" % (VERSION, get_revision()[:12], os.stat(__file__)[stat.ST_MTIME], datetime.datetime.now().ctime())
         print("%s\n%s" % (msg, "=" * len(msg)), file=condeintel_log_file)
 
         _ci_mgr_[folders_id] = mgr
