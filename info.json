@@ -4,9 +4,10 @@
     "icon": "share/Icons/python.png",
     "version" : "1.0",
     "website" : "www.prymatex.org",
-    "author" : "Prymatex",
+    "author" : "Prymatex Team",
     "description" : "",
     "depends" : [ "org.prymatex.codeeditor" ],
+    "paths": ["arch", "libs"],
     "package": "codeintel",
     "register": "registerPlugin",
     "unregister": "unregisterPlugin"

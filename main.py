@@ -14,7 +14,8 @@ arch_path = os.path.join(__path__, 'arch')
 if arch_path not in sys.path:
     sys.path.insert(0, arch_path)
 
-prymatex_path = os.path.abspath(os.path.join(__path__, '../../prymatex'))
+prymatex_path = os.path.abspath(os.path.join(__path__, '../../../../../prymatex'))
+print(prymatex_path)
 if prymatex_path not in sys.path:
     sys.path.insert(0, prymatex_path)
     # Install 
