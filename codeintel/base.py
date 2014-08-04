@@ -261,7 +261,7 @@ def set_status(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', l
                 print("+", "%s: %s" % (ltype.capitalize(), msg), file=condeintel_log_file)
                 (logger or log.info)(msg)
                 if ltype != 'debug':
-                    addon.set_status(lid, "%s: %s" % (ltype.capitalize(), msg))
+                    addon.run_command("set_status", lid, "%s: %s" % (ltype.capitalize(), msg))
                     status_msg[lid] = [ltype, msg, order]
                 if 'warning' not in lid:
                     status_lineno[lid] = lineno
@@ -272,7 +272,7 @@ def set_status(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', l
         status_lock.acquire()
         try:
             if msg == status_msg.get(lid, [None, None, 0])[1]:
-                addon.erase_status(lid)
+                addon.run_command("erase_status", lid)
                 status_msg[lid][1] = None
                 if lid in status_lineno:
                     del status_lineno[lid]

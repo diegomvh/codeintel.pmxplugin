@@ -123,13 +123,14 @@ class CodeIntelAddon(CodeEditorAddon):
         self._notifier = QtCore.QSocketNotifier(self._rsock.fileno(),
                                                 QtCore.QSocketNotifier.Read)
         self._notifier.activated.connect(self._handle_command)
+        self._status = {}
+        self.old_pos = None
         
+        # Connect
         self.editor.textChanged.connect(self.on_editor_textChanged)
         self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
         self.application.aboutToQuit.connect(self.on_application_aboutToQuit)
         #self.editor.selectionChanged.connect(self.on_editor_selectionChanged)
-        
-        self.old_pos = None
         
     def on_application_aboutToQuit(self):
         thread_finalize()
@@ -199,30 +200,30 @@ class CodeIntelAddon(CodeEditorAddon):
         addon_close(self)
 
     # ------------------ Called by Python thread
-    def run_command(self, command, arguments):
-        self._queue.put((command, arguments))
+    def run_command(self, command, *args, **kwargs):
+        self._queue.put((command, args, kwargs))
         self._wsock.send(b'!')
-        
-    def set_status(self, lid, status):
-        print("set status", lid, status)
-
-    def erase_status(self, lid):
-        print("erase status", lid)
-
+    
     # ------------------ Commands happens in Qt's main thread
     def _handle_command(self):
         self._rsock.recv(1)
-        command, arguments = self._queue.get()
-        print(command, arguments)
+        command, args, kwargs = self._queue.get()
+        print(command, args, kwargs)
         method = getattr(self, command, None)
         if method is not None:
-            method(arguments)
+            method(*args, **kwargs)
 
     def auto_complete(self, disable_auto_insert = True, api_completions_only = True,
         next_completion_if_showing = False, auto_complete_commit_on_tab = True):
         completions = query_completions(self)
         self.editor.runCompleter(completions,
             callback = self.completer_callback)
+
+    def set_status(self, lid, status):
+        self._status[lid] = self.editor.showStatus(status)
+
+    def erase_status(self, lid):
+        self._status[lid].close()
 
     # ------------------ Completer callback
     def completer_callback(self, suggestion):
