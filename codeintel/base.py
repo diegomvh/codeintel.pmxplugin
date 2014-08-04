@@ -278,7 +278,7 @@ def set_status(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', l
                     del status_lineno[lid]
         finally:
             status_lock.release()
-    print(msg)
+
     if msg:
         set_timeout(delay or 0, _set_status)
         set_timeout(timeout, _erase_status)
