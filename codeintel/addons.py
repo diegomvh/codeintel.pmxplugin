@@ -220,10 +220,14 @@ class CodeIntelAddon(CodeEditorAddon):
             callback = self.completer_callback)
 
     def set_status(self, lid, status):
-        self._status[lid] = self.editor.showStatus(status)
+        if lid in self._status:
+            self._status[lid].setText(status)
+        else:
+            self._status[lid] = self.editor.showStatus(status)
 
     def erase_status(self, lid):
         self._status[lid].close()
+        del self._status[lid]
 
     # ------------------ Completer callback
     def completer_callback(self, suggestion):
