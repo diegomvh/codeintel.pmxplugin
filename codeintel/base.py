@@ -770,7 +770,7 @@ def codeintel_scan(addon, path, content, lang, callback=None, pos=None, forms=No
             callback(buf, msgs)
         else:
             logger(addon, 'info', "")
-    threading.Thread(target=_codeintel_scan, name=scanning_thread_name, daemon=True).start()
+    threading.Thread(target=_codeintel_scan, name=scanning_thread_name).start()
 
 
 def codeintel(addon, path, content, lang, pos, forms, callback=None, timeout=7000):
