@@ -397,8 +397,9 @@ _ci_next_cullmem_ = 0
 # Queue dispatcher system:
 
 MAX_DELAY = -1  # Does not apply
-queue_thread_name = "codeintel callbacks"
-
+queue_thread_name = "CodeIntel Callbacks"
+manager_thread_name = "CodeIntel Manager"
+scanning_thread_name = "CodeIntel Scanning"
 
 def queue_dispatcher(force=False):
     """
@@ -487,6 +488,7 @@ __pre_initialized_ = False
 def queue_finalize(timeout=None):
     global __pre_initialized_
     for thread in threading.enumerate():
+        print(thread.isAlive(), thread.name, thread.daemon)
         if thread.isAlive() and thread.name == queue_thread_name:
             __pre_initialized_ = True
             thread.__semaphore_.release()
@@ -529,6 +531,7 @@ def codeintel_callbacks(force=False):
     # saving and culling cached parts of the database:
     for folders_id in list(_ci_mgr_.keys()):
         mgr = codeintel_manager(folders_id)
+        print("veamos el manager", mgr)
         now = time.time()
         if now >= _ci_next_savedb_ or force:
             if _ci_next_savedb_:
@@ -551,12 +554,12 @@ def codeintel_cleanup(vid):
 
 
 def codeintel_manager(folders_id):
-    #folders_id = None
+    folders_id = None
     global _ci_mgr_, condeintel_log_filename, condeintel_log_file
     mgr = _ci_mgr_.get(folders_id)
     if mgr is None:
         for thread in threading.enumerate():
-            if thread.name == "CodeIntel Manager":
+            if thread.name == manager_thread_name:
                 thread.finalize()  # this finalizes the index, citadel and the manager and waits them to end (join)
         mgr = Manager(
             extra_module_dirs=None,
@@ -767,7 +770,7 @@ def codeintel_scan(addon, path, content, lang, callback=None, pos=None, forms=No
             callback(buf, msgs)
         else:
             logger(addon, 'info', "")
-    threading.Thread(target=_codeintel_scan, name="scanning thread").start()
+    threading.Thread(target=_codeintel_scan, name=scanning_thread_name, daemon=True).start()
 
 
 def codeintel(addon, path, content, lang, pos, forms, callback=None, timeout=7000):
