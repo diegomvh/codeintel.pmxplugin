@@ -150,7 +150,9 @@ HISTORY_SIZE = 64
 jump_history_by_window = {}  # map of window id -> collections.deque([], HISTORY_SIZE)
 
 def set_timeout(delay, callback, *args, **kwargs):
-    threading.Timer(delay / 1000, callback, args, kwargs).start()
+    timer = threading.Timer(delay / 1000, callback, args, kwargs)
+    timer.name = timer_thread_name
+    timer.start()
 
 def tooltip_popup(addon, snippets):
     vid = id(addon)
@@ -400,6 +402,7 @@ MAX_DELAY = -1  # Does not apply
 queue_thread_name = "CodeIntel Callbacks"
 manager_thread_name = "CodeIntel Manager"
 scanning_thread_name = "CodeIntel Scanning"
+timer_thread_name = "CodeIntel Timer"
 
 def queue_dispatcher(force=False):
     """
@@ -489,9 +492,10 @@ def queue_finalize(timeout=None):
     global __pre_initialized_
     for thread in threading.enumerate():
         print(thread.isAlive(), thread.name, thread.daemon)
-        if thread.isAlive() and thread.name == queue_thread_name:
-            __pre_initialized_ = True
-            thread.__semaphore_.release()
+        if thread.isAlive() and thread.name in (queue_thread_name, timer_thread_name):
+            if thread.name == queue_thread_name:
+                __pre_initialized_ = True
+                thread.__semaphore_.release()
             thread.join(timeout)
 queue_finalize()
 
