@@ -8,7 +8,7 @@ except ImportError:
 
 from prymatex.core.settings import ConfigurableItem
 from prymatex.qt import  QtCore
-from prymatex.gui.codeeditor import CodeEditorAddon
+from prymatex.gui.codeeditor import CodeEditorAddon, CodeEditorKeyHelper
 from codeintel.base import (delay_queue, guess_lang, cpln_fillup_chars, 
     autocomplete, set_status, status_lock, addon_close, query_completions,
     thread_finalize)
@@ -117,7 +117,8 @@ class CodeIntelAddon(CodeEditorAddon):
 
     def initialize(self, **kwargs):
         super(CodeIntelAddon, self).initialize(**kwargs)
-        
+        self.setObjectName("CodeIntelAddon")
+
         self._rsock, self._wsock = socket.socketpair()
         self._queue = queue.Queue()
         self._notifier = QtCore.QSocketNotifier(self._rsock.fileno(),
@@ -270,3 +271,23 @@ class CodeIntelAddon(CodeEditorAddon):
     def is_dirty(self):
         return self.editor.isDirty()
 
+class CodeIntelKeyHelper(CodeEditorKeyHelper):
+    KEY = QtCore.Qt.Key_Space
+    def __init__(self, **kwargs):
+        super(CodeIntelKeyHelper, self).__init__(**kwargs)
+        self.addon = None
+        self.lang = None
+
+    def initialize(self, **kwargs):
+        self.addon = self.editor.findChild(CodeIntelAddon, "CodeIntelAddon")
+
+    def accept(self, event = None, cursor = None, **kwargs):
+        self.lang = None
+        if bool(event.modifiers() & QtCore.Qt.ControlModifier):
+            self.lang = guess_lang(self.addon, self.editor.filePath())
+            print(self.lang)
+        return self.lang != None
+
+    def execute(self, event = None, cursor = None, **kwargs):
+        autocomplete(self.addon, 0, 0, ('calltips', 'cplns'), True, 
+            args=[self.editor.filePath(), self.editor.cursorPosition(), self.lang])
