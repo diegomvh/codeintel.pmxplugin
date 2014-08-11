@@ -491,11 +491,12 @@ __pre_initialized_ = False
 def queue_finalize(timeout=None):
     global __pre_initialized_
     for thread in threading.enumerate():
-        print(thread.isAlive(), thread.name, thread.daemon)
         if thread.isAlive() and thread.name in (queue_thread_name, timer_thread_name):
             if thread.name == queue_thread_name:
                 __pre_initialized_ = True
                 thread.__semaphore_.release()
+            elif thread.name == timer_thread_name:
+                thread.cancel()
             thread.join(timeout)
 queue_finalize()
 
@@ -524,18 +525,17 @@ def codeintel_callbacks(force=False):
     global _ci_next_savedb_, _ci_next_cullmem_
     __lock_.acquire()
     try:
-        views = list(QUEUE.values())
+        addons = list(QUEUE.values())
         QUEUE.clear()
     finally:
         __lock_.release()
-    for addon, callback, args, kwargs in views:
+    for addon, callback, args, kwargs in addons:
         def _callback():
             callback(addon, *args, **kwargs)
         set_timeout(0, _callback)
     # saving and culling cached parts of the database:
     for folders_id in list(_ci_mgr_.keys()):
         mgr = codeintel_manager(folders_id)
-        print("veamos el manager", mgr)
         now = time.time()
         if now >= _ci_next_savedb_ or force:
             if _ci_next_savedb_:
