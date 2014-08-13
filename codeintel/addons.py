@@ -125,18 +125,20 @@ class CodeIntelAddon(CodeEditorAddon):
                                                 QtCore.QSocketNotifier.Read)
         self._notifier.activated.connect(self._handle_command)
         self._status = {}
-        self.old_pos = None
+        self._position = None
+        self._last_command = None
         
         # Connect
         self.editor.textChanged.connect(self.on_editor_textChanged)
         self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
         self.application.aboutToQuit.connect(self.on_application_aboutToQuit)
-        #self.editor.selectionChanged.connect(self.on_editor_selectionChanged)
+        self.editor.cursorPositionChanged.connect(self.on_editor_cursorPositionChanged)
         
     def on_application_aboutToQuit(self):
         thread_finalize()
 
     def on_editor_textChanged(self):
+        print("on_editor_textChanged")
         # Ver si esta activo el autocompletado
         if not self.codeintel_live:
             return
@@ -146,15 +148,19 @@ class CodeIntelAddon(CodeEditorAddon):
         if not lang or lang.lower() not in [ l.lower() for l in self.codeintel_live_enabled_languages ]:
             return
             
-        pos = self.editor.cursorPosition()
-        character = self.editor.document().characterAt(pos - 1)
+        self._position = self.editor.cursorPosition()
+        character = self.editor.document().characterAt(self._position - 1)
         is_fill_char = (character and character in cpln_fillup_chars.get(lang, ''))
         
+        if self._last_command == "commit_completion":
+            forms = ('calltips',)
+        else:
+            forms = ('calltips', 'cplns')
+        self._last_command = "autocomplete"
         autocomplete(self, 
             0 if is_fill_char else 200, 
             50 if is_fill_char else 600, 
-            ('calltips', 'cplns'), 
-            is_fill_char, args=[path, pos, lang])
+            forms, is_fill_char, args=[path, self._position, lang])
         
         # Ahora tengo que ver si no se esta mostrando el completer
         # print('on_modified', self.editor.command_history(1), self.editor.command_history(0), self.editor.command_history(-1))
@@ -175,8 +181,9 @@ class CodeIntelAddon(CodeEditorAddon):
         #else:
         #    self.editor.run_command('hide_auto_complete')
         
-    def on_editor_selectionChanged(self):
-        print("selectionChanged")
+    def on_editor_cursorPositionChanged(self):
+        print("on_editor_cursorPositionChanged")
+        return
         global despair, despaired, old_pos
         delay_queue(600)  # on movement, delay queue (to make movement responsive)
         text, start, end = self.editor.currentWord()
@@ -233,6 +240,7 @@ class CodeIntelAddon(CodeEditorAddon):
     # ------------------ Completer callback
     def completer_callback(self, suggestion):
         self.editor.defaultCompletionCallback(suggestion)
+        self._last_command = "commit_completion"
         
     # ------------------ Editor actions
     def settings(self):
