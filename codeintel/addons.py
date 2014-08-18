@@ -130,7 +130,7 @@ class CodeIntelAddon(CodeEditorAddon):
         # Connect
         self.editor.textChanged.connect(self.on_editor_textChanged)
         self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
-        self.application.aboutToQuit.connect(self.on_application_aboutToQuit)
+        self.application().aboutToQuit.connect(self.on_application_aboutToQuit)
         #self.editor.selectionChanged.connect(self.on_editor_selectionChanged)
         
     def on_application_aboutToQuit(self):
@@ -245,7 +245,7 @@ class CodeIntelAddon(CodeEditorAddon):
         project = self.editor.project()
         if project is not None:
             return [ project.path() ]
-        return self.application.projectManager.knownProjects
+        return self.application().projectManager.knownProjects
     
     def syntax_name(self):
         return self.editor.syntax().name
