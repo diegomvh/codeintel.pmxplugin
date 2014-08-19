@@ -125,13 +125,14 @@ class CodeIntelAddon(CodeEditorAddon):
                                                 QtCore.QSocketNotifier.Read)
         self._notifier.activated.connect(self._handle_command)
         self._status = {}
-        self.old_pos = None
+        self._cursor_position = self.editor.cursorPosition()
+        self._last_command = None
         
         # Connect
         self.editor.textChanged.connect(self.on_editor_textChanged)
         self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
         self.application().aboutToQuit.connect(self.on_application_aboutToQuit)
-        #self.editor.selectionChanged.connect(self.on_editor_selectionChanged)
+        self.editor.cursorPositionChanged.connect(self.on_editor_cursorPositionChanged)
         
     def on_application_aboutToQuit(self):
         thread_finalize()
@@ -141,20 +142,24 @@ class CodeIntelAddon(CodeEditorAddon):
         if not self.codeintel_live:
             return
         
-        path = self.editor.filePath()
+        path = self.file_name()
         lang = guess_lang(self, path)
         if not lang or lang.lower() not in [ l.lower() for l in self.codeintel_live_enabled_languages ]:
             return
-            
-        pos = self.editor.cursorPosition()
-        character = self.editor.document().characterAt(pos - 1)
+        
+        pos = self.cursor_position()
+        character = self.character_at(pos - 1)
         is_fill_char = (character and character in cpln_fillup_chars.get(lang, ''))
         
+        if self._last_command == "commit_completion":
+            forms = ('calltips',)
+        else:
+            forms = ('calltips', 'cplns')
+        self._last_command = "autocomplete"
         autocomplete(self, 
             0 if is_fill_char else 200, 
             50 if is_fill_char else 600, 
-            ('calltips', 'cplns'), 
-            is_fill_char, args=[path, pos, lang])
+            forms, is_fill_char, args=[path, pos, lang])
         
         # Ahora tengo que ver si no se esta mostrando el completer
         # print('on_modified', self.editor.command_history(1), self.editor.command_history(0), self.editor.command_history(-1))
@@ -175,23 +180,24 @@ class CodeIntelAddon(CodeEditorAddon):
         #else:
         #    self.editor.run_command('hide_auto_complete')
         
-    def on_editor_selectionChanged(self):
-        print("selectionChanged")
+    def on_editor_cursorPositionChanged(self):
+        self._cursor_position = self.editor.cursorPosition()
+        return
+        # TODO Todo el resto
         global despair, despaired, old_pos
         delay_queue(600)  # on movement, delay queue (to make movement responsive)
         text, start, end = self.editor.currentWord()
         if not text:
             return
 
-        rowcol = self.editor.cursorPosition()
-        if self.old_pos != rowcol:
+        if self._position == position:
             vid = id(self.editor)
-            self.old_pos = rowcol
+            self._position = position
             despair = 1000
             despaired = True
             status_lock.acquire()
             try:
-                slns = [sid for sid, sln in status_lineno.items() if sln != rowcol[0]]
+                slns = [sid for sid, sln in status_lineno.items() if sln != position[0]]
             finally:
                 status_lock.release()
             for vid in slns:
@@ -233,6 +239,7 @@ class CodeIntelAddon(CodeEditorAddon):
     # ------------------ Completer callback
     def completer_callback(self, suggestion):
         self.editor.defaultCompletionCallback(suggestion)
+        self._last_command = "commit_completion"
         
     # ------------------ Editor actions
     def settings(self):
@@ -260,11 +267,14 @@ class CodeIntelAddon(CodeEditorAddon):
         return self.editor.textUnderCursor(direction = "left", search = True)
     
     def cursor_position(self):
-        return self.editor.cursorPosition()
+        return self._cursor_position
 
     def line_number(self):
         return self.editor.textCursor().blockNumber()
         
+    def character_at(self, pos):
+        return self.editor.document().characterAt(pos)
+
     def is_scratch(self):
         return self.editor.isScratch()
 
