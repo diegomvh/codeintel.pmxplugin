@@ -125,6 +125,8 @@ class CodeIntelAddon(CodeEditorAddon):
                                                 QtCore.QSocketNotifier.Read)
         self._notifier.activated.connect(self._handle_command)
         self._status = {}
+        self._path = None
+        self._lang = None
         self._cursor_position = self.editor.cursorPosition()
         self._last_command = None
         
@@ -133,23 +135,28 @@ class CodeIntelAddon(CodeEditorAddon):
         self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
         self.application().aboutToQuit.connect(self.on_application_aboutToQuit)
         self.editor.cursorPositionChanged.connect(self.on_editor_cursorPositionChanged)
-        
+        self.editor.syntaxChanged.connect(self.on_editor_syntaxChanged)
+        self.editor.filePathChanged.connect(self.on_editor_filePathChanged)
+    
+    def on_editor_filePathChanged(self, path):
+        self._path = path
+
+    def on_editor_syntaxChanged(self, syntax):
+        self._lang = guess_lang(self, self.path())
+        if not self._lang or self._lang.lower() not in [ l.lower() for l in self.codeintel_live_enabled_languages ]:
+            self._lang = None
+
     def on_application_aboutToQuit(self):
         thread_finalize()
 
     def on_editor_textChanged(self):
         # Ver si esta activo el autocompletado
-        if not self.codeintel_live:
-            return
-        
-        path = self.file_name()
-        lang = guess_lang(self, path)
-        if not lang or lang.lower() not in [ l.lower() for l in self.codeintel_live_enabled_languages ]:
+        if not self.codeintel_live or not self._lang:
             return
         
         pos = self.cursor_position()
         character = self.character_at(pos - 1)
-        is_fill_char = (character and character in cpln_fillup_chars.get(lang, ''))
+        is_fill_char = (character and character in cpln_fillup_chars.get(self._lang, ''))
         
         if self._last_command == "commit_completion":
             forms = ('calltips',)
@@ -159,7 +166,7 @@ class CodeIntelAddon(CodeEditorAddon):
         autocomplete(self, 
             0 if is_fill_char else 200, 
             50 if is_fill_char else 600, 
-            forms, is_fill_char, args=[path, pos, lang])
+            forms, is_fill_char, args=[self.path(), pos, self.lang()])
         
         # Ahora tengo que ver si no se esta mostrando el completer
         # print('on_modified', self.editor.command_history(1), self.editor.command_history(0), self.editor.command_history(-1))
@@ -215,7 +222,6 @@ class CodeIntelAddon(CodeEditorAddon):
     def _handle_command(self):
         self._rsock.recv(1)
         command, args, kwargs = self._queue.get()
-        print(command, args, kwargs)
         method = getattr(self, command, None)
         if method is not None:
             method(*args, **kwargs)
@@ -223,8 +229,8 @@ class CodeIntelAddon(CodeEditorAddon):
     def auto_complete(self, disable_auto_insert = True, api_completions_only = True,
         next_completion_if_showing = False, auto_complete_commit_on_tab = True):
         completions = query_completions(self)
-        self.editor.runCompleter(completions,
-            callback = self.completer_callback)
+        print(completions)
+        self.editor.runCompleter(completions, callback = self.completer_callback)
 
     def set_status(self, lid, status):
         if lid in self._status:
@@ -257,8 +263,11 @@ class CodeIntelAddon(CodeEditorAddon):
     def syntax_name(self):
         return self.editor.syntax().name
 
-    def file_name(self):
-        return self.editor.filePath()
+    def lang(self):
+        return self._lang
+
+    def path(self):
+        return self._path
 
     def content(self):
         return self.editor.toPlainText()
@@ -286,18 +295,13 @@ class CodeIntelKeyHelper(CodeEditorKeyHelper):
     def __init__(self, **kwargs):
         super(CodeIntelKeyHelper, self).__init__(**kwargs)
         self.addon = None
-        self.lang = None
 
     def initialize(self, **kwargs):
         self.addon = self.editor.findChild(CodeIntelAddon, "CodeIntelAddon")
 
     def accept(self, event = None, cursor = None, **kwargs):
-        self.lang = None
-        if bool(event.modifiers() & QtCore.Qt.ControlModifier):
-            self.lang = guess_lang(self.addon, self.editor.filePath())
-            print(self.lang)
-        return self.lang != None
+        return bool(event.modifiers() & QtCore.Qt.ControlModifier) and self.addon.lang() != None
 
     def execute(self, event = None, cursor = None, **kwargs):
         autocomplete(self.addon, 0, 0, ('calltips', 'cplns'), True, 
-            args=[self.editor.filePath(), self.editor.cursorPosition(), self.lang])
+            args=[self.addon.path(), self.addon.cursor_position(), self.addon.lang()])

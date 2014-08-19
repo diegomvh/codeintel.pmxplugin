@@ -326,7 +326,7 @@ def guess_lang(addon=None, path=None):
             _lang = lang = syntax
         else:
             if addon and not path:
-                path = addon.file_name()
+                path = addon.path()
             if path:
                 try:
                     _lang = lang = guess_lang_from_path(path)

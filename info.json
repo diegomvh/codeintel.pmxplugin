@@ -1,6 +1,6 @@
 {
     "id": "org.prymatex.codeintel",
-    "name" : "Code intelligence plugin",
+    "title" : "Code intelligence plugin",
     "icon": "share/Icons/python.png",
     "version" : "1.0",
     "website" : "www.prymatex.org",
