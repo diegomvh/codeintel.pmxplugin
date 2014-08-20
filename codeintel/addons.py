@@ -253,13 +253,13 @@ class CodeIntelAddon(CodeEditorAddon):
 
     def window(self):
         return self.editor.mainWindow()
-        
+
     def project_folders(self):
         project = self.editor.project()
         if project is not None:
             return [ project.path() ]
         return self.application().projectManager.knownProjects
-    
+
     def syntax_name(self):
         return self.editor.syntax().name
 
@@ -274,13 +274,13 @@ class CodeIntelAddon(CodeEditorAddon):
 
     def text(self):
         return self.editor.textUnderCursor(direction = "left", search = True)
-    
+
     def cursor_position(self):
         return self._cursor_position
 
     def line_number(self):
         return self.editor.textCursor().blockNumber()
-        
+
     def character_at(self, pos):
         return self.editor.document().characterAt(pos)
 
