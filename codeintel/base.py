@@ -135,7 +135,6 @@ cpln_stop_chars = {
     'JavaScript': "~`!@#%^&*()-=+{}[]|\\;:'\",.<>?/ ",
 }
 
-old_pos = None
 despair = 0
 despaired = False
 
@@ -255,7 +254,6 @@ def set_status(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', l
         status_lock.release()
 
     def _set_status():
-        lineno = addon.line_number()
         status_lock.acquire()
         try:
             current_type, current_msg, current_order = status_msg.get(lid, [None, None, 0])
@@ -266,7 +264,7 @@ def set_status(addon, ltype, msg=None, timeout=None, delay=0, lid='CodeIntel', l
                     addon.run_command("set_status", lid, "%s: %s" % (ltype.capitalize(), msg))
                     status_msg[lid] = [ltype, msg, order]
                 if 'warning' not in lid:
-                    status_lineno[lid] = lineno
+                    status_lineno[lid] = addon.rowcol[0]
         finally:
             status_lock.release()
 
@@ -300,7 +298,7 @@ def guess_lang(addon=None, path=None):
 
     syntax = None
     if addon:
-        syntax = addon.syntax_name()
+        syntax = addon.syntax_name
 
     vid = id(addon)
     _k_ = '%s::%s' % (syntax, path)
@@ -326,7 +324,7 @@ def guess_lang(addon=None, path=None):
             _lang = lang = syntax
         else:
             if addon and not path:
-                path = addon.path()
+                path = addon.path
             if path:
                 try:
                     _lang = lang = guess_lang_from_path(path)
@@ -351,11 +349,11 @@ def guess_lang(addon=None, path=None):
 
 def autocomplete(addon, timeout, busy_timeout, forms, preemptive=False, args=[], kwargs={}):
     def _autocomplete_callback(addon, path, original_pos, lang):
-        pos = addon.cursor_position()
+        pos = addon.cursor_position
         if not pos or pos != original_pos:
             return
 
-        text, start, end = addon.text()
+        text, start, end = addon.text_under_cursor
 
         vid = id(addon)
 
@@ -382,7 +380,7 @@ def autocomplete(addon, timeout, busy_timeout, forms, preemptive=False, args=[],
             if calltips:
                 tooltip(addon, calltips, pos)
 
-        content = addon.content()
+        content = addon.content
         codeintel(addon, path, content, lang, pos, forms, _trigger)
     # If it's a fill char, queue using lower values and preemptive behavior
     queue(addon, _autocomplete_callback, timeout, busy_timeout, preemptive, args=args, kwargs=kwargs)
@@ -588,7 +586,7 @@ def codeintel_manager(folders_id):
 def codeintel_scan(addon, path, content, lang, callback=None, pos=None, forms=None):
     global despair
     for thread in threading.enumerate():
-        if thread.isAlive() and thread.name == "scanning thread":
+        if thread.isAlive() and thread.name == scanning_thread_name:
             logger(addon, 'info', "Updating indexes... The first time this can take a while. Do not despair!", timeout=20000, delay=despair)
             despair = 0
             return
@@ -858,7 +856,7 @@ def codeintel(addon, path, content, lang, pos, forms, callback=None, timeout=700
             print(msg, file=condeintel_log_file)
 
             def _callback():
-                text, _, _ = addon.text()
+                text, _, _ = addon.text_under_cursor
                 if text:
                     callback(*ret)
             logger(addon, 'info', "")
@@ -917,3 +915,15 @@ def query_completions(addon):
         del completions[vid]
         return _completions
     return []
+    
+def update_status(addon, lineno): 
+    global despair, despaired
+    despair = 1000
+    despaired = True
+    status_lock.acquire()
+    try:
+        slns = [sid for sid, sln in status_lineno.items() if sln != lineno]
+    finally:
+        status_lock.release()
+    for vid in slns:
+        set_status(addon, "", lid=vid)

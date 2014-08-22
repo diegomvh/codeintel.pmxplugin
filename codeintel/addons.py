@@ -10,8 +10,8 @@ from prymatex.core.settings import ConfigurableItem
 from prymatex.qt import  QtCore
 from prymatex.gui.codeeditor import CodeEditorAddon, CodeEditorKeyHelper
 from codeintel.base import (delay_queue, guess_lang, cpln_fillup_chars, 
-    autocomplete, set_status, status_lock, addon_close, query_completions,
-    thread_finalize)
+    autocomplete, status_lock, addon_close, query_completions,
+    thread_finalize, update_status)
     
 class CodeIntelAddon(CodeEditorAddon):
     # --------------- Default settings
@@ -125,9 +125,10 @@ class CodeIntelAddon(CodeEditorAddon):
                                                 QtCore.QSocketNotifier.Read)
         self._notifier.activated.connect(self._handle_command)
         self._status = {}
-        self._path = None
-        self._lang = None
-        self._cursor_position = self.editor.cursorPosition()
+        self.old_pos = None
+        self.path = None
+        self.lang = None
+        self.cursor_position = None
         self._last_command = None
         
         # Connect
@@ -139,24 +140,26 @@ class CodeIntelAddon(CodeEditorAddon):
         self.editor.filePathChanged.connect(self.on_editor_filePathChanged)
     
     def on_editor_filePathChanged(self, path):
-        self._path = path
+        self.path = path
 
     def on_editor_syntaxChanged(self, syntax):
-        self._lang = guess_lang(self, self.path())
-        if not self._lang or self._lang.lower() not in [ l.lower() for l in self.codeintel_live_enabled_languages ]:
-            self._lang = None
+        self.syntax_name = syntax.name
+        self.lang = guess_lang(self, self.path)
+        if not self.lang or self.lang.lower() not in [ l.lower() for l in self.codeintel_live_enabled_languages ]:
+            self.lang = None
 
     def on_application_aboutToQuit(self):
         thread_finalize()
 
     def on_editor_textChanged(self):
         # Ver si esta activo el autocompletado
-        if not self.codeintel_live or not self._lang:
+        if not self.codeintel_live or not self.lang:
             return
         
-        pos = self.cursor_position()
-        character = self.character_at(pos - 1)
-        is_fill_char = (character and character in cpln_fillup_chars.get(self._lang, ''))
+        self.content = self.editor.toPlainText()
+        pos = self.editor.cursorPosition()
+        character = self.editor.document().characterAt(pos - 1)
+        is_fill_char = (character and character in cpln_fillup_chars.get(self.lang, ''))
         
         if self._last_command == "commit_completion":
             forms = ('calltips',)
@@ -166,50 +169,18 @@ class CodeIntelAddon(CodeEditorAddon):
         autocomplete(self, 
             0 if is_fill_char else 200, 
             50 if is_fill_char else 600, 
-            forms, is_fill_char, args=[self.path(), pos, self.lang()])
-        
-        # Ahora tengo que ver si no se esta mostrando el completer
-        # print('on_modified', self.editor.command_history(1), self.editor.command_history(0), self.editor.command_history(-1))
-        #if (not hasattr(self.editor, 'command_history') or self.editor.command_history(1)[1] is None and (
-        #        self.editor.command_history(0)[0] == 'insert' and (
-        #            self.editor.command_history(0)[1]['characters'][-1] != '\n'
-        #        ) or
-        #        self.editor.command_history(-1)[0] in ('insert', 'paste') and (
-        #            self.editor.command_history(0)[0] == 'commit_completion' or
-        #            self.editor.command_history(0)[0] == 'insert_snippet' and self.editor.command_history(0)[1]['contents'] == '($0)'
-        #        )
-        #)):
-        #    if self.editor.command_history(0)[0] == 'commit_completion':
-        #        forms = ('calltips',)
-        #    else:
-        #        forms = ('calltips', 'cplns')
-        #    autocomplete(self.editor, 0 if is_fill_char else 200, 50 if is_fill_char else 600, forms, is_fill_char, args=[path, pos, lang])
-        #else:
-        #    self.editor.run_command('hide_auto_complete')
+            forms, is_fill_char, args=[self.path, pos, self.lang])
         
     def on_editor_cursorPositionChanged(self):
-        self._cursor_position = self.editor.cursorPosition()
-        return
-        # TODO Todo el resto
-        global despair, despaired, old_pos
+        self.cursor_position = self.editor.cursorPosition()
+        self.text_under_cursor = self.editor.textUnderCursor(direction = "left", search = True)
+        self.rowcol = (self.editor.textCursor().blockNumber(), self.editor.textCursor().columnNumber())
         delay_queue(600)  # on movement, delay queue (to make movement responsive)
-        text, start, end = self.editor.currentWord()
-        if not text:
-            return
 
-        if self._position == position:
-            vid = id(self.editor)
-            self._position = position
-            despair = 1000
-            despaired = True
-            status_lock.acquire()
-            try:
-                slns = [sid for sid, sln in status_lineno.items() if sln != position[0]]
-            finally:
-                status_lock.release()
-            for vid in slns:
-                set_status(self, "", lid=vid)
-    
+        if self.old_pos != self.rowcol:
+            self.old_pos = self.rowcol
+            update_status(self, self.rowcol[0])
+
     def on_editor_aboutToClose(self):
         addon_close(self)
 
@@ -259,30 +230,6 @@ class CodeIntelAddon(CodeEditorAddon):
         if project is not None:
             return [ project.path() ]
         return self.application().projectManager.knownProjects
-
-    def syntax_name(self):
-        return self.editor.syntax().name
-
-    def lang(self):
-        return self._lang
-
-    def path(self):
-        return self._path
-
-    def content(self):
-        return self.editor.toPlainText()
-
-    def text(self):
-        return self.editor.textUnderCursor(direction = "left", search = True)
-
-    def cursor_position(self):
-        return self._cursor_position
-
-    def line_number(self):
-        return self.editor.textCursor().blockNumber()
-
-    def character_at(self, pos):
-        return self.editor.document().characterAt(pos)
 
     def is_scratch(self):
         return self.editor.isScratch()
