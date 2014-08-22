@@ -247,8 +247,8 @@ class CodeIntelKeyHelper(CodeEditorKeyHelper):
         self.addon = self.editor.findChild(CodeIntelAddon, "CodeIntelAddon")
 
     def accept(self, event = None, cursor = None, **kwargs):
-        return bool(event.modifiers() & QtCore.Qt.ControlModifier) and self.addon.lang() != None
+        return bool(event.modifiers() & QtCore.Qt.ControlModifier) and self.addon.lang != None
 
     def execute(self, event = None, cursor = None, **kwargs):
         autocomplete(self.addon, 0, 0, ('calltips', 'cplns'), True, 
-            args=[self.addon.path(), self.addon.cursor_position(), self.addon.lang()])
+            args=[self.addon.path, self.addon.cursor_position, self.addon.lang])
