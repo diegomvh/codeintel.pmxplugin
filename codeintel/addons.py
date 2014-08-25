@@ -192,7 +192,7 @@ class CodeIntelAddon(CodeEditorAddon):
         
         self.content = self.editor.toPlainText()
         pos = self.editor.cursorPosition()
-        character = self.content[pos - 1]
+        character = self.content[pos - 1] if pos > 1 else ""
         is_fill_char = (character and character in cpln_fillup_chars.get(self.lang, ''))
         
         if self._last_command == "commit_completion":
