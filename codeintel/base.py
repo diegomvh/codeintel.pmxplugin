@@ -386,6 +386,50 @@ def autocomplete(addon, timeout, busy_timeout, forms, preemptive=False, args=[],
     queue(addon, _autocomplete_callback, timeout, busy_timeout, preemptive, args=args, kwargs=kwargs)
 
 
+def gotopython(addon, path, content, lang, pos):
+    def _trigger(defns):
+        if defns is not None:
+            defn = defns[0]
+            if defn.name and defn.doc:
+                msg = "%s: %s" % (defn.name, defn.doc)
+                logger(addon, 'info', msg, timeout=3000)
+
+            if defn.path and defn.line:
+                if defn.line != 1 or defn.path != addon.path:
+                    path = defn.path + ':' + str(defn.line)
+                    msg = 'Jumping to: %s' % path
+                    log.debug(msg)
+                    codeintel_log.debug(msg)
+
+                    window = addon.window()
+                    if id(window) not in jump_history_by_window:
+                        jump_history_by_window[id(window)] = collections.deque([], HISTORY_SIZE)
+                    jump_history = jump_history_by_window[id(window)]
+
+                    # Save current position so we can return to it
+                    row, col = addon.rowcol
+                    current_location = "%s:%d" % (addon.path, row + 1)
+                    jump_history.append(current_location)
+
+                    window.application().openFile(path)
+            elif defn.name:
+                msg = 'Cannot find jumping point to: %s' % defn.name
+                log.debug(msg)
+                codeintel_log.debug(msg)
+
+    codeintel(addon, path, content, lang, pos, ('defns',), _trigger)
+
+
+def backtopython(addon):
+    window = addon.window()
+    if id(window) in jump_history_by_window:
+        jump_history = jump_history_by_window[id(window)]
+
+        if len(jump_history) > 0:
+            previous_location = jump_history.pop()
+            window.openFile(previous_location)
+
+
 _ci_envs_ = {}
 _ci_next_scan_ = {}
 _ci_mgr_ = {}

@@ -9,9 +9,9 @@ except ImportError:
 from prymatex.core.settings import ConfigurableItem
 from prymatex.qt import  QtCore
 from prymatex.gui.codeeditor import CodeEditorAddon, CodeEditorKeyHelper
-from codeintel.base import (delay_queue, guess_lang, cpln_fillup_chars, 
-    autocomplete, status_lock, addon_close, query_completions,
-    thread_finalize, update_status)
+from codeintel.base import (gotopython, autocomplete, delay_queue, guess_lang,
+    cpln_fillup_chars, status_lock, addon_close, query_completions,
+    thread_finalize, update_status, backtopython)
     
 class CodeIntelAddon(CodeEditorAddon):
     # --------------- Default settings
@@ -132,13 +132,34 @@ class CodeIntelAddon(CodeEditorAddon):
         self._last_command = None
         
         # Connect
-        self.editor.textChanged.connect(self.on_editor_textChanged)
+        self.editor.textChanged.connect(self.autocomplete)
         self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
         self.application().aboutToQuit.connect(self.on_application_aboutToQuit)
         self.editor.cursorPositionChanged.connect(self.on_editor_cursorPositionChanged)
         self.editor.syntaxChanged.connect(self.on_editor_syntaxChanged)
         self.editor.filePathChanged.connect(self.on_editor_filePathChanged)
     
+    # ---------------- Shortcuts
+    def contributeToShortcuts(self):
+        return [{
+            "sequence": ("CodeIntel", "GoToPythonDefinition", "Meta+Alt+Ctrl+Up"),
+            "activated": lambda : self.goToPythonDefinition()
+        }, {
+            "sequence": ("CodeIntel", "BackToPythonDefinition", "Meta+Alt+Ctrl+Left"),
+            "activated": lambda : self.backToPythonDefinition()
+        }]
+    
+    def goToPythonDefinition(self):
+        if self.lang:
+            self.content = self.editor.toPlainText()
+            pos = self.editor.cursorPosition()
+
+            gotopython(self, self.path, self.content, self.lang, pos)
+        
+    def backToPythonDefinition(self):
+        backtopython(self)
+    
+    # ------------------ Signals
     def on_editor_filePathChanged(self, path):
         self.path = path
 
@@ -150,27 +171,7 @@ class CodeIntelAddon(CodeEditorAddon):
 
     def on_application_aboutToQuit(self):
         thread_finalize()
-
-    def on_editor_textChanged(self):
-        # Ver si esta activo el autocompletado
-        if not self.codeintel_live or not self.lang:
-            return
-        
-        self.content = self.editor.toPlainText()
-        pos = self.editor.cursorPosition()
-        character = self.editor.document().characterAt(pos - 1)
-        is_fill_char = (character and character in cpln_fillup_chars.get(self.lang, ''))
-        
-        if self._last_command == "commit_completion":
-            forms = ('calltips',)
-        else:
-            forms = ('calltips', 'cplns')
-        self._last_command = "autocomplete"
-        autocomplete(self, 
-            0 if is_fill_char else 200, 
-            50 if is_fill_char else 600, 
-            forms, is_fill_char, args=[self.path, pos, self.lang])
-        
+    
     def on_editor_cursorPositionChanged(self):
         self.cursor_position = self.editor.cursorPosition()
         self.text_under_cursor = self.editor.textUnderCursor(direction = "left", search = True)
@@ -183,6 +184,26 @@ class CodeIntelAddon(CodeEditorAddon):
 
     def on_editor_aboutToClose(self):
         addon_close(self)
+
+    def autocomplete(self):
+        # Ver si esta activo el autocompletado
+        if not self.codeintel_live or not self.lang:
+            return
+        
+        self.content = self.editor.toPlainText()
+        pos = self.editor.cursorPosition()
+        character = self.content[pos - 1]
+        is_fill_char = (character and character in cpln_fillup_chars.get(self.lang, ''))
+        
+        if self._last_command == "commit_completion":
+            forms = ('calltips',)
+        else:
+            forms = ('calltips', 'cplns')
+        self._last_command = "autocomplete"
+        autocomplete(self, 
+            0 if is_fill_char else 200, 
+            50 if is_fill_char else 600, 
+            forms, is_fill_char, args=[self.path, pos, self.lang])
 
     # ------------------ Called by Python thread
     def run_command(self, command, *args, **kwargs):
@@ -241,14 +262,13 @@ class CodeIntelKeyHelper(CodeEditorKeyHelper):
     KEY = QtCore.Qt.Key_Space
     def __init__(self, **kwargs):
         super(CodeIntelKeyHelper, self).__init__(**kwargs)
-        self.addon = None
+        self.codeintel_addon = None
 
     def initialize(self, **kwargs):
-        self.addon = self.editor.findChild(CodeIntelAddon, "CodeIntelAddon")
+        self.codeintel_addon = self.editor.findChild(CodeIntelAddon, "CodeIntelAddon")
 
     def accept(self, event = None, cursor = None, **kwargs):
-        return bool(event.modifiers() & QtCore.Qt.ControlModifier) and self.addon.lang != None
+        return bool(event.modifiers() & QtCore.Qt.ControlModifier) and self.codeintel_addon.lang != None
 
     def execute(self, event = None, cursor = None, **kwargs):
-        autocomplete(self.addon, 0, 0, ('calltips', 'cplns'), True, 
-            args=[self.addon.path, self.addon.cursor_position, self.addon.lang])
+        self.codeintel_addon.autocomplete()
