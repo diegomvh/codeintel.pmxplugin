@@ -243,9 +243,6 @@ class CodeIntelAddon(CodeEditorAddon):
     def settings(self):
         return {}
 
-    def window(self):
-        return self.editor.mainWindow()
-
     def project_folders(self):
         project = self.editor.project()
         if project is not None:
