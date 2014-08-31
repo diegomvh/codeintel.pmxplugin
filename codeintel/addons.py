@@ -8,7 +8,7 @@ except ImportError:
 
 from prymatex.core.settings import ConfigurableItem
 from prymatex.qt import  QtCore
-from prymatex.gui.codeeditor import CodeEditorAddon, CodeEditorKeyHelper
+from prymatex.gui.codeeditor import CodeEditorAddon
 from codeintel.base import (gotopython, autocomplete, delay_queue, guess_lang,
     cpln_fillup_chars, status_lock, addon_close, query_completions,
     thread_finalize, update_status, backtopython)
@@ -138,6 +138,8 @@ class CodeIntelAddon(CodeEditorAddon):
         self.editor.cursorPositionChanged.connect(self.on_editor_cursorPositionChanged)
         self.editor.syntaxChanged.connect(self.on_editor_syntaxChanged)
         self.editor.filePathChanged.connect(self.on_editor_filePathChanged)
+        
+        self.editor.registerPreKeyPressHandler(QtCore.Qt.Key_Space, self.__run_autocomplete)
     
     # ---------------- Shortcuts
     def contributeToShortcuts(self):
@@ -159,6 +161,11 @@ class CodeIntelAddon(CodeEditorAddon):
     def backToPythonDefinition(self):
         backtopython(self)
     
+    def __run_autocomplete(self, event):
+        if event.modifiers() & QtCore.Qt.ControlModifier:
+            self.autocomplete()
+            return True
+        return False
     # ------------------ Signals
     def on_editor_filePathChanged(self, path):
         self.path = path
@@ -254,18 +261,3 @@ class CodeIntelAddon(CodeEditorAddon):
 
     def is_dirty(self):
         return self.editor.isDirty()
-
-class CodeIntelKeyHelper(CodeEditorKeyHelper):
-    KEY = QtCore.Qt.Key_Space
-    def __init__(self, **kwargs):
-        super(CodeIntelKeyHelper, self).__init__(**kwargs)
-        self.codeintel_addon = None
-
-    def initialize(self, **kwargs):
-        self.codeintel_addon = self.editor.findChild(CodeIntelAddon, "CodeIntelAddon")
-
-    def accept(self, event = None, cursor = None, **kwargs):
-        return bool(event.modifiers() & QtCore.Qt.ControlModifier) and self.codeintel_addon.lang != None
-
-    def execute(self, event = None, cursor = None, **kwargs):
-        self.codeintel_addon.autocomplete()
