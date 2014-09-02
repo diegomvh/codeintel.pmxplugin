@@ -170,8 +170,8 @@ class CodeIntelAddon(CodeEditorAddon):
     def on_editor_filePathChanged(self, path):
         self.path = path
 
-    def on_editor_syntaxChanged(self, syntax):
-        self.syntax_name = syntax.name
+    def on_editor_syntaxChanged(self):
+        self.syntax_name = self.editor.syntax().name
         self.lang = guess_lang(self, self.path)
         if not self.lang or self.lang.lower() not in [ l.lower() for l in self.codeintel_live_enabled_languages ]:
             self.lang = None
