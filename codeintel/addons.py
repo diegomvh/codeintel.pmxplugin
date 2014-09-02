@@ -128,6 +128,7 @@ class CodeIntelAddon(CodeEditorAddon):
         self.old_pos = None
         self.path = None
         self.lang = None
+        self.modified = False
         self.cursor_position = None
         self._last_command = None
         
@@ -167,6 +168,9 @@ class CodeIntelAddon(CodeEditorAddon):
             return True
         return False
     # ------------------ Signals
+    def on_editor_modificationChanged(self, modified):
+        self.modified = modified
+        
     def on_editor_filePathChanged(self, path):
         self.path = path
 
@@ -228,7 +232,6 @@ class CodeIntelAddon(CodeEditorAddon):
     def auto_complete(self, disable_auto_insert = True, api_completions_only = True,
         next_completion_if_showing = False, auto_complete_commit_on_tab = True):
         completions = query_completions(self)
-        print(completions)
         self.editor.runCompleter(completions, callback = self.completer_callback)
 
     def set_status(self, lid, status):
@@ -257,7 +260,7 @@ class CodeIntelAddon(CodeEditorAddon):
         return self.application().projectManager.knownProjects
 
     def is_scratch(self):
-        return self.editor.isScratch()
+        return self.path is not None
 
     def is_dirty(self):
-        return self.editor.isDirty()
+        return self.modified
