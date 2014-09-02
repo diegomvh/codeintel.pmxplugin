@@ -140,7 +140,7 @@ class CodeIntelAddon(CodeEditorAddon):
         self.editor.syntaxChanged.connect(self.on_editor_syntaxChanged)
         self.editor.filePathChanged.connect(self.on_editor_filePathChanged)
         
-        self.editor.registerPreKeyPressHandler(QtCore.Qt.Key_Space, self.__run_autocomplete)
+        self.editor.registerKeyPressHandler(QtCore.Qt.Key_Space, self.__run_autocomplete)
     
     # ---------------- Shortcuts
     def contributeToShortcuts(self):
@@ -165,7 +165,6 @@ class CodeIntelAddon(CodeEditorAddon):
     def __run_autocomplete(self, event):
         if event.modifiers() & QtCore.Qt.ControlModifier:
             self.autocomplete()
-            return True
         return False
     # ------------------ Signals
     def on_editor_modificationChanged(self, modified):
