@@ -231,7 +231,8 @@ class CodeIntelAddon(CodeEditorAddon):
     def auto_complete(self, disable_auto_insert = True, api_completions_only = True,
         next_completion_if_showing = False, auto_complete_commit_on_tab = True):
         completions = query_completions(self)
-        self.editor.runCompleter(completions, callback = self.completer_callback)
+        if completions:
+            self.editor.runCompleter(completions, callback = self.completer_callback)
 
     def set_status(self, lid, status):
         if lid in self._status:
