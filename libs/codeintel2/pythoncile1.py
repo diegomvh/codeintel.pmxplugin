@@ -1334,6 +1334,8 @@ class AST2CIXVisitor(ast.NodeVisitor):
             except PythonCILEError:
                 # XXX Work around some trouble cases.
                 s += ":..."
+        elif isinstance(node, ast.NameConstant):
+            s = "NameConstant"
         if s is None:
             raise PythonCILEError("don't know how to get string repr "
                                   "of expression: %r" % node)

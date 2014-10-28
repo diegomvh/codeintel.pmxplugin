@@ -533,7 +533,7 @@ __pre_initialized_ = False
 def queue_finalize(timeout=None):
     global __pre_initialized_
     for thread in threading.enumerate():
-        if thread.isAlive() and thread.name in (queue_thread_name, timer_thread_name):
+        if thread.name in (queue_thread_name, timer_thread_name) and thread.isAlive():
             if thread.name == queue_thread_name:
                 __pre_initialized_ = True
                 thread.__semaphore_.release()
@@ -630,7 +630,7 @@ def codeintel_manager(folders_id):
 def codeintel_scan(addon, path, content, lang, callback=None, pos=None, forms=None):
     global despair
     for thread in threading.enumerate():
-        if thread.isAlive() and thread.name == scanning_thread_name:
+        if thread.name == scanning_thread_name and thread.isAlive():
             logger(addon, 'info', "Updating indexes... The first time this can take a while. Do not despair!", timeout=20000, delay=despair)
             despair = 0
             return
