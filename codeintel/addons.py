@@ -11,7 +11,7 @@ from prymatex.qt import  QtCore
 from prymatex.gui.codeeditor import CodeEditorAddon
 from codeintel.base import (gotopython, autocomplete, delay_queue, guess_lang,
     cpln_fillup_chars, status_lock, addon_close, query_completions,
-    thread_finalize, update_status, backtopython)
+    update_status, backtopython)
     
 class CodeIntelAddon(CodeEditorAddon):
     # --------------- Default settings
@@ -135,7 +135,6 @@ class CodeIntelAddon(CodeEditorAddon):
         # Connect
         self.editor.textChanged.connect(self.autocomplete)
         self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
-        self.application().aboutToQuit.connect(self.on_application_aboutToQuit)
         self.editor.cursorPositionChanged.connect(self.on_editor_cursorPositionChanged)
         self.editor.syntaxChanged.connect(self.on_editor_syntaxChanged)
         self.editor.filePathChanged.connect(self.on_editor_filePathChanged)
@@ -179,9 +178,6 @@ class CodeIntelAddon(CodeEditorAddon):
         if not self.lang or self.lang.lower() not in [ l.lower() for l in self.codeintel_live_enabled_languages ]:
             self.lang = None
 
-    def on_application_aboutToQuit(self):
-        thread_finalize()
-    
     def on_editor_cursorPositionChanged(self):
         self.cursor_position = self.editor.cursorPosition()
         self.text_under_cursor = self.editor.textUnderCursor(direction = "left", search = True)
