@@ -9,10 +9,81 @@ except ImportError:
 from prymatex.core.settings import ConfigurableItem
 from prymatex.qt import  QtCore
 from prymatex.gui.codeeditor import CodeEditorAddon
+from prymatex.gui.codeeditor.modes import CodeEditorComplitionMode, CompletionBaseModel
+
 from codeintel.base import (gotopython, autocomplete, delay_queue, guess_lang,
     cpln_fillup_chars, status_lock, addon_close, query_completions,
     update_status, backtopython)
     
+class CodeIntelCompletionModel(CompletionBaseModel):
+    def __init__(self, **kwargs):
+        super(CodeIntelCompletionModel, self).__init__(**kwargs)
+        self.suggestions = []
+
+    def setSuggestions(self, suggestions):
+        print(suggestions)
+        self.modelAboutToBeReset.emit()
+        self.suggestions = suggestions
+        self.modelReset.emit()
+        self.suggestionsReady.emit()
+        
+    def fill(self):
+        self.suggestions = []
+        self.parent().autocomplete()
+    
+    def isReady(self):
+        return bool(self.suggestions)
+    
+    def activatedCompletion(self, index):
+        self.parent().complition.defaultCompletionCallback(
+            self.suggestions[index.row()]
+        )
+
+    def highlightedCompletion(self, index):
+        print("highlightedCompletion")
+        
+    def setCurrentRow(self, index, completion_count):
+        return True
+        
+    def columnCount(self, parent = None):
+        return 1
+
+    def rowCount(self, parent = None):
+        return len(self.suggestions)
+
+    def index(self, row, column, parent = QtCore.QModelIndex()):
+        if row < len(self.suggestions):
+            return self.createIndex(row, column, parent)
+        else:
+            return QtCore.QModelIndex()
+
+    def data(self, index, role = QtCore.Qt.DisplayRole):
+        if not index.isValid():
+            return None
+        suggestion = self.suggestions[index.row()]
+        if role == QtCore.Qt.DisplayRole:
+            if 'display' in suggestion:
+                return suggestion['display']
+            elif 'title' in suggestion:
+                return suggestion['title']
+        elif role == QtCore.Qt.EditRole:
+            if 'match' in suggestion:
+                return suggestion['match']
+            elif 'display' in suggestion:
+                return suggestion['display']
+            elif 'title' in suggestion:
+                return suggestion['title']
+        elif role == QtCore.Qt.DecorationRole:
+            if index.column() == 0 and 'image' in suggestion:
+                return self.editor.resources().get_icon(suggestion['image'])
+        elif role == QtCore.Qt.ToolTipRole:
+            if 'tooltip' in suggestion:
+                if 'tooltip_format' in suggestion:
+                    print(suggestion["tooltip_format"])
+                return suggestion['tooltip']
+        elif role == QtCore.Qt.MatchRole:
+            return suggestion['display']
+
 class CodeIntelAddon(CodeEditorAddon):
     # --------------- Default settings
     
@@ -134,12 +205,13 @@ class CodeIntelAddon(CodeEditorAddon):
         
         # Connect
         self.editor.textChanged.connect(self.autocomplete)
-        self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
+        #self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
         self.editor.cursorPositionChanged.connect(self.on_editor_cursorPositionChanged)
         self.editor.syntaxChanged.connect(self.on_editor_syntaxChanged)
         self.editor.filePathChanged.connect(self.on_editor_filePathChanged)
-        
-        self.editor.defaultMode().registerKeyPressHandler(QtCore.Qt.Key_Space, self.__run_autocomplete)
+        self.model = CodeIntelCompletionModel(parent = self)
+        self.complition = self.editor.findAddon(CodeEditorComplitionMode)
+        self.complition.registerModel(self.model)
     
     # ---------------- Shortcuts
     def contributeToShortcuts(self):
@@ -160,11 +232,7 @@ class CodeIntelAddon(CodeEditorAddon):
         
     def backToPythonDefinition(self):
         backtopython(self)
-    
-    def __run_autocomplete(self, event):
-        if event.modifiers() & QtCore.Qt.ControlModifier:
-            self.autocomplete()
-        return False
+
     # ------------------ Signals
     def on_editor_modificationChanged(self, modified):
         self.modified = modified
@@ -228,7 +296,7 @@ class CodeIntelAddon(CodeEditorAddon):
         next_completion_if_showing = False, auto_complete_commit_on_tab = True):
         completions = query_completions(self)
         if completions:
-            self.editor.runCompleter(completions, callback = self.completer_callback)
+            self.model.setSuggestions(completions)
 
     def set_status(self, lid, status):
         if lid in self._status:

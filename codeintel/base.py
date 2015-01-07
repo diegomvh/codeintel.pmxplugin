@@ -155,7 +155,6 @@ def set_timeout(delay, callback, *args, **kwargs):
 
 def tooltip_popup(addon, snippets):
     vid = id(addon)
-    print("tooltip_popup", snippets)
     completions[vid] = snippets
     addon.run_command('auto_complete', {
         'disable_auto_insert': True,

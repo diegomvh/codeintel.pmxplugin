@@ -10,4 +10,4 @@ def on_application_aboutToQuit():
     
 def registerPlugin(manager, descriptor):
     manager.application().aboutToQuit.connect(on_application_aboutToQuit)
-    #manager.registerComponent(CodeIntelAddon, CodeEditor)
+    manager.registerComponent(CodeIntelAddon, CodeEditor)
