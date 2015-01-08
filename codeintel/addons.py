@@ -21,7 +21,6 @@ class CodeIntelCompletionModel(CompletionBaseModel):
         self.suggestions = []
 
     def setSuggestions(self, suggestions):
-        print(suggestions)
         self.modelAboutToBeReset.emit()
         self.suggestions = suggestions
         self.modelReset.emit()
@@ -204,8 +203,8 @@ class CodeIntelAddon(CodeEditorAddon):
         self._last_command = None
         
         # Connect
-        self.editor.textChanged.connect(self.autocomplete)
-        #self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
+        self.editor.keyPressed.connect(self.on_editor_keyPressed)
+        self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
         self.editor.cursorPositionChanged.connect(self.on_editor_cursorPositionChanged)
         self.editor.syntaxChanged.connect(self.on_editor_syntaxChanged)
         self.editor.filePathChanged.connect(self.on_editor_filePathChanged)
@@ -258,6 +257,10 @@ class CodeIntelAddon(CodeEditorAddon):
 
     def on_editor_aboutToClose(self):
         addon_close(self)
+
+    def on_editor_keyPressed(self, event):
+        if event.text():
+            self.autocomplete()
 
     def autocomplete(self):
         # Ver si esta activo el autocompletado
