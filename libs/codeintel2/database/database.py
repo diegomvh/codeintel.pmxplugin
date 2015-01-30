@@ -970,9 +970,9 @@ class Database(object):
             yield self._catalogs_zone
         if self._stdlibs_zone:
             yield self._stdlibs_zone
-        for zone in self._lang_zone_from_lang.values()[:]:
+        for zone in list(self._lang_zone_from_lang.values()):
             yield zone
-        for zone in self._proj_zone_from_proj_path.values()[:]:
+        for zone in list(self._proj_zone_from_proj_path.values()):
             yield zone
 
     def load_blob(self, dbsubpath):
