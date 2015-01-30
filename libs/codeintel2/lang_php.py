@@ -354,7 +354,7 @@ class PHPLangIntel(CitadelLangIntel, ParenStyleCalltipIntelMixin,
                     p, c, style = ac.getPrecedingPosCharStyle(
                         prev_style, self.comment_styles)
                     if DEBUG:
-                        print "Preceding: %d, %r, %d" % (p, c, style)
+                        print("Preceding: %d, %r, %d" % (p, c, style))
                     if style is None:
                         return None
                     elif style == self.keyword_style:
@@ -1319,7 +1319,7 @@ class PHPImportHandler(ImportHandler):
                                  "PHP include path. 'corePath' must be set "
                                  "manually.")
 
-    def _findScannableFiles(self, (files, searchedDirs), dirname, names):
+    def _findScannableFiles(self, files, searchedDirs, dirname, names):
         if sys.platform.startswith("win"):
             cpath = dirname.lower()
         else:

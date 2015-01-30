@@ -950,7 +950,7 @@ class JavaScriptImportHandler(ImportHandler):
     def setCorePath(self, compiler=None, extra=None):
         self.corePath = []
 
-    def _findScannableFiles(self, (files, searchedDirs), dirname, names):
+    def _findScannableFiles(self, files, searchedDirs, dirname, names):
         if sys.platform.startswith("win"):
             cpath = dirname.lower()
         else:

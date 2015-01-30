@@ -1122,8 +1122,8 @@ class PythonImportHandler(ImportHandler):
         self.corePath = self._shellOutForPath(compiler)
 
     def _findScannableFiles(self,
-                            (files, searchedDirs, skipRareImports,
-                             importableOnly),
+                            files, searchedDirs, skipRareImports,
+                            importableOnly,
                             dirname, names):
         if sys.platform.startswith("win"):
             cpath = dirname.lower()
