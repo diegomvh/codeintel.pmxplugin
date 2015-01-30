@@ -9,12 +9,10 @@ except ImportError:
 from prymatex.core.settings import ConfigurableItem
 from prymatex.qt import  QtCore
 from prymatex.gui.codeeditor import CodeEditorAddon
-from prymatex.gui.codeeditor.modes import CodeEditorComplitionMode
-
-from sublime import View
 
 from codeintel.models import CodeIntelCompletionModel
-from codeintel.SublimeCodeIntel import PythonCodeIntel
+
+from codeintel.SublimeCodeIntel import *
 
 class CodeIntelAddon(CodeEditorAddon):
     # --------------- Default settings
@@ -135,15 +133,30 @@ class CodeIntelAddon(CodeEditorAddon):
     def initialize(self, **kwargs):
         super(CodeIntelAddon, self).initialize(**kwargs)
         self.setObjectName("CodeIntelAddon")
+
+        self._rsock, self._wsock = socket.socketpair()
+        self._queue = queue.Queue()
+        self._notifier = QtCore.QSocketNotifier(self._rsock.fileno(),
+                                                QtCore.QSocketNotifier.Read)
+        self._notifier.activated.connect(self._handle_command)
+        self._status = {}
+        self.old_pos = None
+        self.path = None
+        self.lang = None
+        self.modified = False
+        self.cursor_position = None
+        self._last_command = None
         
-        # Build Sublime abstraction
-        self.view = View(self.editor)
-        self.view.add_event_listener(PythonCodeIntel())
-
-        self.complition_model = CodeIntelCompletionModel(parent=self)
-        complition = self.editor.findAddon(CodeEditorComplitionMode)
-        complition.registerModel(self.complition_model)
-
+        # Connect
+        self.editor.keyPressed.connect(self.on_editor_keyPressed)
+        self.editor.aboutToClose.connect(self.on_editor_aboutToClose)
+        self.editor.cursorPositionChanged.connect(self.on_editor_cursorPositionChanged)
+        self.editor.syntaxChanged.connect(self.on_editor_syntaxChanged)
+        self.editor.filePathChanged.connect(self.on_editor_filePathChanged)
+        self.model = CodeIntelCompletionModel(parent = self)
+        self.complition = self.editor.findAddon(CodeEditorComplitionMode)
+        self.complition.registerModel(self.model)
+    
     # ---------------- Shortcuts
     def contributeToShortcuts(self):
         return [{
@@ -153,3 +166,97 @@ class CodeIntelAddon(CodeEditorAddon):
             "sequence": ("CodeIntel", "BackToPythonDefinition", "Meta+Alt+Ctrl+Left"),
             "activated": lambda : self.backToPythonDefinition()
         }]
+    
+    def goToPythonDefinition(self):
+        if self.lang:
+            self.content = self.editor.toPlainText()
+            pos = self.editor.cursorPosition()
+
+            gotopython(self, self.path, self.content, self.lang, pos)
+        
+    def backToPythonDefinition(self):
+        backtopython(self)
+
+    # ------------------ Signals
+    def on_editor_modificationChanged(self, modified):
+        self.modified = modified
+        
+    def on_editor_filePathChanged(self, path):
+        self.path = path
+
+    def on_editor_syntaxChanged(self):
+        self.syntax_name = self.editor.syntax().name
+        self.lang = guess_lang(self, self.path)
+        if not self.lang or self.lang.lower() not in [ l.lower() for l in self.codeintel_live_enabled_languages ]:
+            self.lang = None
+
+    def on_editor_cursorPositionChanged(self):
+        self.cursor_position = self.editor.cursorPosition()
+        self.text_under_cursor = self.editor.textUnderCursor(direction = "left", search = True)
+        self.rowcol = (self.editor.textCursor().blockNumber(), self.editor.textCursor().columnNumber())
+        delay_queue(600)  # on movement, delay queue (to make movement responsive)
+
+        if self.old_pos != self.rowcol:
+            self.old_pos = self.rowcol
+            update_status(self, self.rowcol[0])
+
+    def on_editor_aboutToClose(self):
+        addon_close(self)
+
+    def on_editor_keyPressed(self, event):
+        if event.text():
+            self.autocomplete()
+
+    def autocomplete(self):
+        # Ver si esta activo el autocompletado
+        if not self.codeintel_live or not self.lang:
+            return
+        
+        self.content = self.editor.toPlainText()
+        pos = self.editor.cursorPosition()
+        character = self.content[pos - 1] if pos > 1 else ""
+        is_fill_char = (character and character in cpln_fillup_chars.get(self.lang, ''))
+        
+        if self._last_command == "commit_completion":
+            forms = ('calltips',)
+        else:
+            forms = ('calltips', 'cplns')
+        self._last_command = "autocomplete"
+        autocomplete(self, 
+            0 if is_fill_char else 200, 
+            50 if is_fill_char else 600, 
+            forms, is_fill_char, args=[self.path, pos, self.lang])
+
+    # ------------------ Called by Python thread
+    def run_command(self, command, *args, **kwargs):
+        self._queue.put((command, args, kwargs))
+        self._wsock.send(b'!')
+    
+    # ------------------ Commands happens in Qt's main thread
+    def _handle_command(self):
+        self._rsock.recv(1)
+        command, args, kwargs = self._queue.get()
+        method = getattr(self, command, None)
+        if method is not None:
+            method(*args, **kwargs)
+
+    def auto_complete(self, disable_auto_insert = True, api_completions_only = True,
+        next_completion_if_showing = False, auto_complete_commit_on_tab = True):
+        completions = query_completions(self)
+        if completions:
+            self.model.setSuggestions(completions)
+
+    def set_status(self, lid, status):
+        if lid in self._status:
+            self._status[lid].setText(status)
+        else:
+            self._status[lid] = self.editor.showStatus(status)
+
+    def erase_status(self, lid):
+        self._status[lid].close()
+        del self._status[lid]
+
+    # ------------------ Completer callback
+    def completer_callback(self, suggestion):
+        self.editor.defaultCompletionCallback(suggestion)
+        self._last_command = "commit_completion"

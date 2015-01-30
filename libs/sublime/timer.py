@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-import threading
+from prymatex.qt import QtCore
 
-timer_thread_name = "CodeIntel Timer"
+from prymatex.qt.helpers import qapplication
+pmx = qapplication()
 
-def set_timeout(callback, delay, *args, **kwargs):
-    timer = threading.Timer(delay / 1000, callback, args, kwargs)
-    timer.name = timer_thread_name
-    timer.start()
+def set_timeout(callback, delay):
+    QtCore.QTimer.singleShot(delay, callback)

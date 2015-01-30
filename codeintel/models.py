@@ -2,8 +2,7 @@
 
 from prymatex.qt import QtCore
 
-from prymatex.gui.codeeditor.modes import (CodeEditorComplitionMode,
-    CompletionBaseModel)
+from prymatex.gui.codeeditor.modes import CompletionBaseModel
 
 class CodeIntelCompletionModel(CompletionBaseModel):
     def __init__(self, **kwargs):
@@ -18,7 +17,7 @@ class CodeIntelCompletionModel(CompletionBaseModel):
         
     def fill(self):
         self.suggestions = []
-        self.parent().autocomplete()
+        print("Vamos a completer")
     
     def isReady(self):
         return bool(self.suggestions)
