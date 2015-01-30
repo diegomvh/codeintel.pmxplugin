@@ -698,44 +698,59 @@ class JavaScriptLangIntel(CitadelLangIntel,
         evalr = self._evaluatorClass(ctlr, buf, trg, citdl_expr, line)
         buf.mgr.request_eval(evalr)
 
-    def _extra_dirs_from_env(self, env):
-        extra_dirs = set()
-        include_project = env.get_pref("codeintel_scan_files_in_project", True)
-        if include_project:
-            proj_base_dir = env.get_proj_base_dir()
-            if proj_base_dir is not None:
-                extra_dirs.add(proj_base_dir)  # Bug 68850.
-        for pref in env.get_all_prefs(self.extraPathsPrefName):
-            if not pref:
-                continue
-            extra_dirs.update(d.strip() for d in pref.split(os.pathsep)
-                              if exists(d.strip()))
-        if extra_dirs:
-            log.debug("%s extra lib dirs: %r", self.lang, extra_dirs)
-            max_depth = env.get_pref("codeintel_max_recursive_dir_depth", 10)
-            # Always include common JS associations - bug 91915.
-            js_assocs = env.assoc_patterns_from_lang("JavaScript")
-            if self.lang != "JavaScript":
-                # Add any language specific associations.
-                js_assocs = set(js_assocs)
-                js_assocs.update(env.assoc_patterns_from_lang(self.lang))
-                js_assocs = list(js_assocs)
-            extra_dirs = tuple(
-                util.gen_dirs_under_dirs(extra_dirs,
-                                         max_depth=max_depth,
-                                         interesting_file_patterns=js_assocs)
-            )
 
-            # TODO Why doesn't it pick-up the value in the setting file???
+    def _expand_extra_dirs(self, env, extra_dirs):
+        max_depth = env.get_pref("codeintel_max_recursive_dir_depth", 10)
+        # Always include common JS associations - bug 91915.
+        js_assocs = env.assoc_patterns_from_lang("JavaScript")
+        if self.lang != "JavaScript":
+            # Add any language specific associations.
+            js_assocs = set(js_assocs)
+            js_assocs.update(env.assoc_patterns_from_lang(self.lang))
+            js_assocs = list(js_assocs)
+        return util.gen_dirs_under_dirs(extra_dirs,
+                                     max_depth=max_depth,
+                                     interesting_file_patterns=js_assocs)
 
-            exclude_patterns = env.get_pref("codeintel_scan_exclude_dir", {"JavaScript": ["/build/"]}).get(self.lang)
-            if not exclude_patterns is None:
-                for p in exclude_patterns:
-                    extra_dirs = [d for d in extra_dirs if not re.search(p, d)]
 
-        else:
-            extra_dirs = ()  # ensure retval is a tuple
-        return extra_dirs
+    #def _extra_dirs_from_env(self, env):
+    #    extra_dirs = set()
+    #    include_project = env.get_pref("codeintel_scan_files_in_project", True)
+    #    if include_project:
+    #        proj_base_dir = env.get_proj_base_dir()
+    #        if proj_base_dir is not None:
+    #            extra_dirs.add(proj_base_dir)  # Bug 68850.
+    #    for pref in env.get_all_prefs(self.extraPathsPrefName):
+    #        if not pref:
+    #            continue
+    #        extra_dirs.update(d.strip() for d in pref.split(os.pathsep)
+    #                          if exists(d.strip()))
+    #    if extra_dirs:
+    #        log.debug("%s extra lib dirs: %r", self.lang, extra_dirs)
+    #        max_depth = env.get_pref("codeintel_max_recursive_dir_depth", 10)
+    #        # Always include common JS associations - bug 91915.
+    #        js_assocs = env.assoc_patterns_from_lang("JavaScript")
+    #        if self.lang != "JavaScript":
+    #            # Add any language specific associations.
+    #            js_assocs = set(js_assocs)
+    #            js_assocs.update(env.assoc_patterns_from_lang(self.lang))
+    #            js_assocs = list(js_assocs)
+    #        extra_dirs = tuple(
+    #            util.gen_dirs_under_dirs(extra_dirs,
+    #                                     max_depth=max_depth,
+    #                                     interesting_file_patterns=js_assocs)
+    #        )
+
+    #        # TODO Why doesn't it pick-up the value in the setting file???
+
+    #        exclude_patterns = env.get_pref("codeintel_scan_exclude_dir", ["/build/"])
+    #        if not exclude_patterns is None:
+    #            for p in exclude_patterns:
+    #                extra_dirs = [d for d in extra_dirs if not re.search(p, d)]
+
+    #    else:
+    #        extra_dirs = ()  # ensure retval is a tuple
+    #    return extra_dirs
 
     def _get_stdlibs_from_env(self, env=None):
         return [self.mgr.db.get_stdlib(self.lang)]
@@ -861,16 +876,6 @@ class JavaScriptBuffer(CitadelBuffer):
 
     cb_show_if_empty = True
 
-    def __init__(self, *args, **kwargs):
-        CitadelBuffer.__init__(self, *args, **kwargs)
-
-        if isinstance(self.accessor, KoDocumentAccessor):
-            # Encourage the database to pre-scan dirs relevant to completion
-            # for this buffer -- because of recursive-dir-include-everything
-            # semantics for JavaScript this first-time scan can take a while.
-            request = PreloadBufLibsRequest(self)
-            self.mgr.idxr.stage_request(request, 1.0)
-
     @property
     def libs(self):
         return self.langintel.libs_from_buf(self)
@@ -945,8 +950,7 @@ class JavaScriptImportHandler(ImportHandler):
     def setCorePath(self, compiler=None, extra=None):
         self.corePath = []
 
-    def _findScannableFiles(self, xxx_todo_changeme, dirname, names):
-        (files, searchedDirs) = xxx_todo_changeme
+    def _findScannableFiles(self, (files, searchedDirs), dirname, names):
         if sys.platform.startswith("win"):
             cpath = dirname.lower()
         else:
@@ -1295,7 +1299,7 @@ class JSObject:
             result.append("%s%s %s" % (" " * depth, self.cixname, self.name))
         for attrname in ("classes", "members", "functions", "variables"):
             d = getattr(self, attrname, {})
-            for v in list(d.values()):
+            for v in d.values():
                 result += v.outline(depth + 2)
         return result
 
@@ -1363,7 +1367,7 @@ class JSObject:
 
         # Additional meta-data.
         if self.metadata:
-            for key, value in list(self.metadata.items()):
+            for key, value in self.metadata.items():
                 cixobject.attrib[key] = value
 
         # Add the type information, JSDoc overrides whatever the ciler found
@@ -1484,7 +1488,7 @@ class JSArgument(JSVariable):
             result.append("%sargument %s" % (" " * depth, self.name))
         for attrname in ("classes", "members", "functions", "variables"):
             d = getattr(self, attrname, {})
-            for v in list(d.values()):
+            for v in d.values():
                 result += v.outline(depth + 2)
         return result
 
@@ -1599,7 +1603,7 @@ class JSFile:
         result = ["File: %r" % (self.name)]
         for attrname in ("classes", "functions", "variables"):
             d = getattr(self, attrname, {})
-            for v in list(d.values()):
+            for v in d.values():
                 result += v.outline(2)
         return result
 
@@ -1727,7 +1731,7 @@ class JSFile:
                 self._lookupVariableTypes(
                     list(jstype.functions.values()), scopeStack + [jstype])
             if hasattr(jstype, "variables"):
-                for jsvariable in list(jstype.variables.values()):
+                for jsvariable in jstype.variables.values():
                     varType = jsvariable.type
                     if varType:
                         actualType = self._lookupVariableType(
@@ -2601,7 +2605,7 @@ class JavaScriptCiler:
                 jsclass.line = jsfunc.line
             # Copy over non-local variables from the function to the class,
             # all the local variables stay inside the function scope.
-            for varName, v in list(jsfunc.variables.items()):
+            for varName, v in jsfunc.variables.items():
                 isLocal = "__local__" in v.attributes or isinstance(
                     v, JSArgument)
                 if not isLocal:
@@ -2619,15 +2623,15 @@ class JavaScriptCiler:
             parent.variables.pop(var.name, None)
 
         # Copy across all non-local members, bug 88549.
-        for name, jsobject in list(jsfunc.variables.items()):
+        for name, jsobject in jsfunc.variables.items():
             if '__local__' not in jsobject.attributes and not isinstance(jsobject, JSArgument):
                 jsclass.variables[name] = jsobject
                 jsfunc.variables.pop(name, None)
-        for name, jsobject in list(jsfunc.functions.items()):
+        for name, jsobject in jsfunc.functions.items():
             if '__local__' not in jsobject.attributes:
                 jsclass.functions[name] = jsobject
                 jsfunc.functions.pop(name, None)
-        for name, jsobject in list(jsfunc.classes.items()):
+        for name, jsobject in jsfunc.classes.items():
             if '__local__' not in jsobject.attributes:
                 jsclass.classes[name] = jsobject
                 jsfunc.classes.pop(name, None)
@@ -3213,17 +3217,32 @@ class JavaScriptCiler:
                 p += 1
             args, p = self._getArgumentsFromPos(styles, text, p)
             return (TYPE_FUNCTION, [], args, p)
-        else:
-            typeNames, p, isAlias = self._getVariableType(
-                styles, text, p, assignmentChar)
-            if len(namelist) > 2 and namelist[-2:] == ["prototype", "constructor"]:
-                # Foo.prototype.constructor = bar; don't treat as an alias
-                pass
-            elif isAlias and typeNames != namelist:
-                log.debug("_getVariableDetail: %r is an alias to %r",
-                          namelist, typeNames)
-                return (TYPE_ALIAS, typeNames, None, p)
-            return (TYPE_VARIABLE, typeNames, None, p)
+
+        if "=>" in text[p:]:
+            # Check for ES6 fat arrow function
+            # Example: var f = (arg1, arg2) => { body }
+            #          var g = arg_only => expr
+
+            arrow_index = text.index("=>")
+            maybe_args = text[p + 1:arrow_index]
+            if maybe_args[0] == "(" and maybe_args[-1] == ")":
+                # Maybe have args...
+                args, new_p = self._getArgumentsFromPos(styles, text, p + 1)
+                if args is not None:
+                    return (TYPE_FUNCTION, [], args, arrow_index)
+            elif arrow_index == p + 2 and styles[p+1] == self.JS_IDENTIFIER:
+                # single argument
+                return (TYPE_FUNCTION, [], [text[p+1]], arrow_index)
+
+        typeNames, p, isAlias = self._getVariableType(styles, text, p, assignmentChar)
+        if len(namelist) > 2 and namelist[-2:] == ["prototype", "constructor"]:
+            # Foo.prototype.constructor = bar; don't treat as an alias
+            pass
+        elif isAlias and typeNames != namelist:
+            log.debug("_getVariableDetail: %r is an alias to %r",
+                      namelist, typeNames)
+            return (TYPE_ALIAS, typeNames, None, p)
+        return (TYPE_VARIABLE, typeNames, None, p)
 
     def _variableHandler(self, lineno, styles, text, p, namelist,
                          allowedAssignmentChars="=",
@@ -3396,7 +3415,7 @@ class JavaScriptCiler:
                         # "alias" to a primitive
                         varType = TYPE_VARIABLE
                 varType_mapping = dict([(
-                    v, k) for k, v in list(globals().items()) if k.startswith("TYPE_")])
+                    v, k) for k, v in globals().items() if k.startswith("TYPE_")])
                 log.debug("_variableHandler:: varType:%r, typeNames:%r, args:%r, p: %d", varType_mapping.get(
                     varType, varType), typeNames, args, p)
                 if varType == TYPE_FUNCTION:
@@ -3699,7 +3718,7 @@ class JavaScriptCiler:
         for fieldname in ('classes', 'members', 'variables', 'functions', ):
             d_obj = getattr(jsobject, fieldname, {})
             d_oth = getattr(jsother, fieldname, {})
-            for name, jsobj in list(d_obj.items()):
+            for name, jsobj in d_obj.items():
                 # Check the parents are not the same.
                 if jsobj.parent == jsother:
                     parent = jsobj.parent
@@ -3720,7 +3739,7 @@ class JavaScriptCiler:
         d_members = getattr(jsother, "members", {})
         d_variables = getattr(jsother, "variables", {})
 
-        for name, jsobj in list(d_variables.items()):
+        for name, jsobj in d_variables.items():
             if name in d_members:
                 # Decide which one to keep then, remove the variable and then
                 # replace the member with the best choice.
@@ -4094,7 +4113,10 @@ class JavaScriptCiler:
                         return
                 # log.debug("token_next: line %d, %r, text: %r" % (self.lineno,
                 # text, self.text))
-                for op in text:
+                next_op_index = 0
+                while next_op_index < len(text):
+                    op = text[next_op_index]
+                    next_op_index += 1
                     self.styles.append(style)
                     self.text.append(op)
                     # if self.state == S_OBJECT_ARGUMENT:
@@ -4103,10 +4125,8 @@ class JavaScriptCiler:
                     if op == "(":
                         if self.bracket_depth == 0:
                             # We can start defining arguments now
-                            log.debug(
-                                "Entering S_IN_ARGS state, line: %d, col: %d", start_line, start_column)
-                            newscope = self._findScopeFromContext(
-                                self.styles, self.text)
+                            log.debug("Entering S_IN_ARGS state, line: %d, col: %d", start_line, start_column)
+                            newscope = self._findScopeFromContext(self.styles, self.text)
                             self._pushAndSetState(S_IN_ARGS)
                             if newscope and self.currentScope != newscope:
                                 log.debug("Adjusting scope to: %r %r",
@@ -4125,13 +4145,20 @@ class JavaScriptCiler:
                             self._popPreviousState(keep_style_and_text=True)
                             if self.state != S_IN_ARGS and last_state == S_IN_ARGS:
                                 self._handleFunctionWithArguments()
-                            log.debug(
-                                "Entering state %d, line: %d, col: %d", self.state, start_line, start_column)
+                            log.debug("Entering state %d, line: %d, col: %d", self.state, start_line, start_column)
                         elif isinstance(self.lastScope, JSFunction) and self.text[-3:] == ['{', '(', ')']:
                             # It's a function argument closure.
-                            self.lastScope = self._convertFunctionToClosureVariable(
-                                self.lastScope)
-                    # elif op == "=":
+                            self.lastScope = self._convertFunctionToClosureVariable(self.lastScope)
+                    elif op == "=":
+                        try:
+                            next_ch = text[next_op_index]
+                        except IndexError:
+                            continue
+                        if next_ch == ">":
+                            # ES6, => fat arrow function
+                            self.text[-1] = "=>"
+                            next_op_index += 1
+                    #elif op == "=":
                     #    if text == op:
                     #        log.debug("Entering S_IN_ASSIGNMENT state, line: %d, col: %d", start_line, start_column)
                     #        self.state = S_IN_ASSIGNMENT
