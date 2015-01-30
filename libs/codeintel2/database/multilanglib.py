@@ -47,7 +47,7 @@ from glob import glob
 from pprint import pprint, pformat
 import time
 import logging
-from io import BytesIO
+from io import StringIO
 import copy
 
 import ciElementTree as ET
@@ -437,7 +437,7 @@ class MultiLangTopLevelNameIndex(object):
     def merge(self):
         """Merge all on-deck changes with `self.data'."""
         for base, (timestamp, res_data,
-                   res_data_pivot) in list(self._on_deck.items()):
+                   res_data_pivot) in self._on_deck.items():
             if res_data_pivot is None:
                 res_data_pivot = self._pivot_res_data(res_data)
             # res_data_pivot: {lang -> ilk -> toplevelname -> blobnames}
@@ -456,7 +456,7 @@ class MultiLangTopLevelNameIndex(object):
     def merge_expired(self, now):
         """Merge expired on-deck changes with `self.data'."""
         for base, (timestamp, res_data,
-                   res_data_pivot) in list(self._on_deck.items()):
+                   res_data_pivot) in self._on_deck.items():
             if now - timestamp < self.timeout:
                 continue
 
@@ -549,7 +549,7 @@ class MultiLangTopLevelNameIndex(object):
 
         # ...on-deck items
         for base, (timestamp, res_data,
-                   res_data_pivot) in list(self._on_deck.items()):
+                   res_data_pivot) in self._on_deck.items():
             if lang not in res_data:
                 continue
             if res_data_pivot is None:
@@ -598,7 +598,7 @@ class MultiLangTopLevelNameIndex(object):
         blobnames = set()
         # First check on-deck items.
         for base, (timestamp, res_data,
-                   res_data_pivot) in list(self._on_deck.items()):
+                   res_data_pivot) in self._on_deck.items():
             if lang not in res_data:
                 continue
             if res_data_pivot is None:
@@ -679,7 +679,7 @@ class MultiLangZone(LangZone):
             for lang, blobname in (
                 (lang, list(tfifb.keys())[
                  0])  # only one blob per lang in a resource
-                for lang, tfifb in list(res_data.items())
+                for lang, tfifb in res_data.items()
             ):
                 dbsubpath = join(dhash, blob_index[lang][blobname])
                 try:
@@ -752,7 +752,7 @@ class MultiLangZone(LangZone):
             for lang, blobname in (
                 (lang, list(tfifb.keys())[
                  0])  # only one blob per lang in a resource
-                for lang, tfifb in list(res_data.items())
+                for lang, tfifb in res_data.items()
             ):
                 try:
                     dbfile = blob_index[lang][blobname]
@@ -892,7 +892,7 @@ class MultiLangZone(LangZone):
                 # and the dbfiles and then make them.
                 dbfile_changes = []
                 for (lang, blobname), blob \
-                        in list(new_blob_from_lang_and_blobname.items()):
+                        in new_blob_from_lang_and_blobname.items():
                     try:
                         old_res_data[lang][blobname]
                     except KeyError:
@@ -900,7 +900,7 @@ class MultiLangZone(LangZone):
                     else:
                         dbfile_changes.append(("update", lang, blobname, blob))
 
-                for lang, old_tfifb in list(old_res_data.items()):
+                for lang, old_tfifb in old_res_data.items():
                     for blobname in old_tfifb:
                         try:
                             new_res_data[lang][blobname]
@@ -943,7 +943,7 @@ class MultiLangZone(LangZone):
                     elif action == "update":
                         # Try to only change the dbfile on disk if it is
                         # different.
-                        s = BytesIO()
+                        s = StringIO()
                         if blob.get("src") is None:
                             blob.set(
                                 "src", buf.path)   # for defns_from_pos() support
@@ -956,7 +956,7 @@ class MultiLangZone(LangZone):
                         #       updated. For files under edit this will be
                         #       common. I.e. just for the "editset".
                         try:
-                            fin = open(dbpath, 'rb')
+                            fin = open(dbpath, 'r')
                         except (OSError, IOError) as ex:
                             # Technically if the dbfile doesn't exist, this
                             # is a sign of database corruption. No matter
@@ -974,7 +974,7 @@ class MultiLangZone(LangZone):
                             # XXX What to do if fail to write out file?
                             log.debug("fs-write: %s|%s blob '%s/%s'",
                                       self.lang, lang, dhash, dbfile)
-                            fout = open(dbpath, 'wb')
+                            fout = open(dbpath, 'w')
                             try:
                                 fout.write(new_dbfile_content)
                             finally:

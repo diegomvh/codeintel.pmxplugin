@@ -48,7 +48,7 @@ import time
 from glob import glob
 from pprint import pprint, pformat
 import logging
-from io import BytesIO
+from io import StringIO
 import codecs
 import copy
 
@@ -160,7 +160,7 @@ class LangDirsLib(LangDirsLibBase):
                             imports = set(
                                 (name, is_dir_import)
                                 for name, (_, _, is_dir_import)
-                                in list(sub_importables.items())
+                                in sub_importables.items()
                             )
                             break
                     else:
@@ -172,7 +172,7 @@ class LangDirsLib(LangDirsLibBase):
                         imports.update(
                             (name, is_dir_import)
                             for name, (_, _, is_dir_import)
-                            in list(importables.items())
+                            in importables.items()
                         )
                 self._blob_imports_from_prefix_cache[prefix] = imports
             return self._blob_imports_from_prefix_cache[prefix]
@@ -525,7 +525,7 @@ class LangTopLevelNameIndex(object):
     def merge(self):
         """Merge all on-deck changes with `self.data'."""
         for base, (timestamp, res_data,
-                   res_data_pivot) in list(self._on_deck.items()):
+                   res_data_pivot) in self._on_deck.items():
             if res_data_pivot is None:
                 res_data_pivot = self._pivot_res_data(res_data)
             # res_data_pivot: {ilk -> toplevelname -> blobnames}
@@ -542,7 +542,7 @@ class LangTopLevelNameIndex(object):
     def merge_expired(self, now):
         """Merge expired on-deck changes with `self.data'."""
         for base, (timestamp, res_data,
-                   res_data_pivot) in list(self._on_deck.items()):
+                   res_data_pivot) in self._on_deck.items():
             if now - timestamp < self.timeout:
                 continue
 
@@ -624,7 +624,7 @@ class LangTopLevelNameIndex(object):
 
         # ...on-deck items
         for base, (timestamp, res_data,
-                   res_data_pivot) in list(self._on_deck.items()):
+                   res_data_pivot) in self._on_deck.items():
             if res_data_pivot is None:
                 res_data_pivot = self._on_deck[base][2] \
                     = self._pivot_res_data(res_data)
@@ -667,7 +667,7 @@ class LangTopLevelNameIndex(object):
         blobnames = set()
         # First check on-deck items.
         for base, (timestamp, res_data,
-                   res_data_pivot) in list(self._on_deck.items()):
+                   res_data_pivot) in self._on_deck.items():
             if res_data_pivot is None:
                 res_data_pivot = self._on_deck[base][2] \
                     = self._pivot_res_data(res_data)
@@ -1075,7 +1075,7 @@ class LangZone(object):
                     elif action == "update":
                         # Try to only change the dbfile on disk if it is
                         # different.
-                        s = BytesIO()
+                        s = StringIO()
                         if blob.get("src") is None:
                             blob.set(
                                 "src", buf.path)   # for defns_from_pos() support
@@ -1088,7 +1088,7 @@ class LangZone(object):
                         #       updated. For files under edit this will be
                         #       common. I.e. just for the "editset".
                         try:
-                            fin = open(dbpath, 'rb')
+                            fin = open(dbpath, 'r')
                         except (OSError, IOError) as ex:
                             # Technically if the dbfile doesn't exist, this
                             # is a sign of database corruption. No matter
@@ -1106,7 +1106,7 @@ class LangZone(object):
                             # XXX What to do if fail to write out file?
                             log.debug("fs-write: %s blob '%s/%s'",
                                       self.lang, dhash, dbfile)
-                            fout = open(dbpath, 'wb')
+                            fout = open(dbpath, 'w')
                             try:
                                 fout.write(new_dbfile_content)
                             finally:
@@ -1246,7 +1246,7 @@ class LangZone(object):
 
             now = time.time()
             for dbsubpath, (index, atime) \
-                    in list(self._index_and_atime_from_dbsubpath.items()):
+                    in self._index_and_atime_from_dbsubpath.items():
                 if now - atime > TIME_SINCE_ACCESS:
                     if dbsubpath in self._is_index_dirty_from_dbsubpath:
                         self.save_index(dbsubpath, index)

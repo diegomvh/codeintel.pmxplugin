@@ -88,7 +88,7 @@ class LangDirsLibBase(object):
                 reporter = None
             res_index = self.lang_zone.load_index(dir, "res_index", {})
             importables = self._importables_from_dir(dir)
-            importable_values = [i[0] for i in list(importables.values())
+            importable_values = [i[0] for i in importables.values()
                                  if i[0] is not None]
             for base in importable_values:
                 if ctlr and ctlr.is_aborted():
