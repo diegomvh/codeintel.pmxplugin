@@ -23,7 +23,10 @@ import itertools
 import json
 import logging
 import os.path
-import queue
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 import shutil
 import sys
 import threading
@@ -523,7 +526,7 @@ class Driver(threading.Thread):
                             except ValueError:
                                 pass  # ... shouldn't happen, but tolerate it
                             continue
-                        for handlers in list(self._command_handler_map.values()):
+                        for handlers in self._command_handler_map.values():
                             try:
                                 handlers[handlers.index(
                                     handler)] = real_handler
@@ -679,8 +682,8 @@ class CoreHandler(CommandHandler):
         else:
             langs = request.get("languages", None)
             if not langs:
-                langs = dict(list(zip(self._get_stdlib_langs(driver),
-                                 itertools.repeat(None))))
+                langs = dict(zip(self._get_stdlib_langs(driver),
+                                 itertools.repeat(None)))
             progress_base = 5
             progress_incr = (80 - progress_base) / len(
                 langs)  # stage 1 goes up to 80%
@@ -725,11 +728,9 @@ class CoreHandler(CommandHandler):
         elif typ == "citadel":
             driver.send(languages=driver.mgr.get_citadel_langs())
         elif typ == "xml":
-            driver.send(languages=list(filter(driver.mgr.is_xml_lang,
-                                         list(driver.mgr.buf_class_from_lang.keys()))))
+            driver.send(languages=[ lang for lang in driver.mgr.buf_class_from_lang.keys() if driver.mgr.is_xml_lang(lang) ])
         elif typ == "multilang":
-            driver.send(languages=list(filter(driver.mgr.is_multilang,
-                                         list(driver.mgr.buf_class_from_lang.keys()))))
+            driver.send(languages=[ lang for lang in driver.mgr.buf_class_from_lang.keys() if driver.mgr.is_multilang(lang) ])
         elif typ == "stdlib-supported":
             driver.send(languages=self._get_stdlib_langs(driver))
         else:
@@ -739,7 +740,7 @@ class CoreHandler(CommandHandler):
         if self._stdlib_langs is None:
             stdlibs_zone = driver.mgr.db.get_stdlibs_zone()
             langs = set()
-            for lang in list(driver.mgr.buf_class_from_lang.keys()):
+            for lang in driver.mgr.buf_class_from_lang.keys():
                 if stdlibs_zone.vers_and_names_from_lang(lang):
                     langs.add(lang)
             self._stdlib_langs = sorted(langs)
@@ -870,10 +871,10 @@ class CoreHandler(CommandHandler):
         public = set()
         system = set()
         datasetHandler = koXMLDatasetInfo.getService()
-        for catalog in list(datasetHandler.resolver.catalogMap.values()):
+        for catalog in datasetHandler.resolver.catalogMap.values():
             public.update(list(catalog.public.keys()))
             system.update(list(catalog.system.keys()))
-        namespaces = list(datasetHandler.resolver.getWellKnownNamspaces().keys())
+        namespaces = datasetHandler.resolver.getWellKnownNamspaces().keys()
         driver.send(request=request,
                     public=sorted(public),
                     system=sorted(system),
