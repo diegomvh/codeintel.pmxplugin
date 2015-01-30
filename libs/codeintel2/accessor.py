@@ -959,7 +959,7 @@ def _test():
     content = "This is my test buffer\r\nSecond   line\r\nThird line\r\n"
     styles = "1111011011011110111111 2 21111110001111 2 21111101111 2 2".replace(
         " ", "")
-    ta = _TestAccessor(content, list(map(int, styles)))
+    ta = _TestAccessor(content, [ int(c) for c in styles])
     pos = len(content) - 2
     ac = AccessorCache(ta, pos)
     # ac._debug = True
