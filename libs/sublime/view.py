@@ -21,29 +21,29 @@ class View(object):
         self._editor.selectionChanged.connect(lambda view=self: listener.on_selection_modified(view))
         
     def id(self):
-        "id() int Returns a number that uniquely identifies this view."
+        """id() int Returns a number that uniquely identifies this view."""
         return id(self._editor)
 
     def buffer_id(self):
-        "buffer_id() int Returns a number that uniquely identifies the buffer underlying this view."
+        """buffer_id() int Returns a number that uniquely identifies the buffer underlying this view."""
         pass
     def file_name(self):
-        "file_name() String The full name file the file associated with the buffer, or None if it doesn't exist on disk."
+        """file_name() String The full name file the file associated with the buffer, or None if it doesn't exist on disk."""
         return self._editor.filePath()
     def name(self):
-        "name()	String	The name assigned to the buffer, if any"
+        """name()	String	The name assigned to the buffer, if any"""
         pass
     def set_name(self, name):
-        "set_name(name)	None	Assigns a name to the buffer"
+        """set_name(name)	None	Assigns a name to the buffer"""
         pass
     def is_loading(self):
-        "is_loading()	bool	Returns true if the buffer is still loading from disk, and not ready for use."
+        """is_loading()	bool	Returns true if the buffer is still loading from disk, and not ready for use."""
         pass
     def is_dirty(self):
-        "is_dirty()	bool	Returns true if there are any unsaved modifications to the buffer."
+        """is_dirty()	bool	Returns true if there are any unsaved modifications to the buffer."""
         pass    
     def is_read_only(self):
-        "is_read_only()	bool	Returns true if the buffer may not be modified."
+        """is_read_only()	bool	Returns true if the buffer may not be modified."""
         pass
     def set_read_only(self, value):
         """return None	Sets the read only property on the buffer."""
@@ -60,7 +60,7 @@ class View(object):
     def window(self):
         """return Window	Returns a reference to the window containing the view."""
         pass
-    def run_command(self, string, <args>):
+    def run_command(self, string, args=None):
         """return None	Runs the named TextCommand with the (optional) given arguments."""
         pass
     def size(self):
@@ -81,7 +81,7 @@ class View(object):
     def replace(self, edit, region, string):
         """return None	Replaces the contents of the region with the given string."""
         pass
-    def sel(self, self):
+    def sel(self):
         """return Selection	Returns a reference to the selection."""
         pass
     def line(self, point):
@@ -109,31 +109,30 @@ class View(object):
         """return Region	Returns a modified copy of region such that it starts at the beginning of a word, and ends at the end of a word. Note that it may span several words."""
         pass
     def classify(self, point):
-        """return int	Classifies pt, returning a bitwise OR of zero or more of these flags:
-
-    CLASS_WORD_START
-    CLASS_WORD_END
-    CLASS_PUNCTUATION_START
-    CLASS_PUNCTUATION_END
-    CLASS_SUB_WORD_START
-    CLASS_SUB_WORD_END
-    CLASS_LINE_START
-    CLASS_LINE_END
-    CLASS_EMPTY_LINE """
+        """return int Classifies pt, returning a bitwise OR of zero or more of these flags:
+        CLASS_WORD_START
+        CLASS_WORD_END
+        CLASS_PUNCTUATION_START
+        CLASS_PUNCTUATION_END
+        CLASS_SUB_WORD_START
+        CLASS_SUB_WORD_END
+        CLASS_LINE_START
+        CLASS_LINE_END
+        CLASS_EMPTY_LINE"""
         pass
-    def find_by_class(self, point, forward, classes, <separators>):
-        "find_by_class(point, forward, classes, <separators>) Region	Finds the next location after point that matches the given classes. If forward is False, searches backwards instead of forwards. classes is a bitwise OR of the sublime.CLASS_XXX flags. separators may be passed in, to define what characters should be considered to separate words.""""
+    def find_by_class(self, point, forward, classes, separators=None):
+        """find_by_class(point, forward, classes, <separators>) Region	Finds the next location after point that matches the given classes. If forward is False, searches backwards instead of forwards. classes is a bitwise OR of the sublime.CLASS_XXX flags. separators may be passed in, to define what characters should be considered to separate words."""
         pass
-    def expand_by_class(self, point, classes, <separators>):
+    def expand_by_class(self, point, classes, separators=None):
         "expand_by_class(point, classes, <separators>) Region	Expands point to the left and right, until each side lands on a location that matches classes. classes is a bitwise OR of the sublime.CLASS_XXX flags. separators may be passed in, to define what characters should be considered to separate words."
         pass
-    def expand_by_class(self, region, classes, <separators>):
+    def expand_by_class(self, region, classes, separators=None):
         """return Region	Expands region to the left and right, until each side lands on a location that matches classes. classes is a bitwise OR of the sublime.CLASS_XXX flags. separators may be passed in, to define what characters should be considered to separate words."""
         pass
-    def find(self, pattern, fromPosition, <flags>):
+    def find(self, pattern, fromPosition, flags=None):
         """return Region	Returns the first Region matching the regex pattern, starting from the given point, or None if it can't be found. The optional flags parameter may be sublime.LITERAL, sublime.IGNORECASE, or the two ORed together."""
         pass
-    def find_all(self, pattern, <flags>, <format>, <extractions>):
+    def find_all(self, pattern, flags=None, format=None, extractions=None):
         """return [Region]	Returns all (non-overlapping) regions matching the regex pattern. The optional flags parameter may be sublime.LITERAL, sublime.IGNORECASE, or the two ORed together. If a format string is given, then all matches will be formatted with the formatted string and placed into the extractions list."""
         pass
     def rowcol(self, point):
@@ -178,7 +177,7 @@ class View(object):
     def viewport_position(self):
         """return Vector	Returns the offset of the viewport in layout coordinates."""
         pass
-    def set_viewport_position(self, vector, animate):
+    def set_viewport_position(self, vector, animate=None):
         """return None	Scrolls the viewport to the given layout position."""
         pass
     def viewport_extent(self):
@@ -199,7 +198,7 @@ class View(object):
     def em_width(self):
         """return real	Returns the typical character width used in the layout"""
         pass
-    def add_regions(self, key, [regions], <scope>, <icon>, <flags>):
+    def add_regions(self, key, regions, scope=None, icon=None, flags=None):
         """return None	Add a set of regions to the view. If a set of regions already exists with the given key, they will be overwritten. The scope is used to source a color to draw the regions in, it should be the name of a scope, such as "comment" or "string". If the scope is empty, the regions won't be drawn.
 
 The optional icon name, if given, will draw the named icons in the gutter next to each region. The icon will be tinted using the color associated with the scope. Valid icon names are dot, circle, bookmark and cross. The icon name may also be a full package relative path, such as Packages/Theme - Default/dot.png.
@@ -234,7 +233,7 @@ The underline styles are exclusive, either zero or one of them should be given. 
     def erase_status(self, key):
         """return None	Clears the named status."""
         pass
-    def command_history(self, index, <modifying_only>):
+    def command_history(self, index, modifying_only=None):
         """return (String,Dict,int)	Returns the command name, command arguments, and repeat count for the given history entry, as stored in the undo / redo stack.
 Index 0 corresponds to the most recent command, -1 the command before that, and so on. Positive values for index indicate to look in the redo stack for commands. If the undo / redo history doesn't extend far enough, then (None, None, 0) will be returned.
 
@@ -243,7 +242,7 @@ Setting modifying_only to True (the default is False) will only return entries t
     def change_count(self):
         """return int	Returns the current change count. Each time the buffer is modified, the change count is incremented. The change count can be used to determine if the buffer has changed since the last it was inspected."""
         pass
-    def fold(self, [regions]):
+    def fold(self, regions):
         """return bool	Folds the given regions, returning False if they were already folded"""
         pass
     def fold(self, region):
@@ -252,7 +251,7 @@ Setting modifying_only to True (the default is False) will only return entries t
     def unfold(self, region):
         """return [regions]	Unfolds all text in the region, returning the unfolded regions"""
         pass
-    def unfold(self, [regions]):
+    def unfold(self, regions):
         """return [regions]	Unfolds all text in the regions, returning the unfolded regions"""
         pass
     def encoding(self):
@@ -276,10 +275,8 @@ Setting modifying_only to True (the default is False) will only return entries t
     def symbols(self, line_endings):
         """return [(Region, String)]	Extract all the symbols defined in the buffer."""
         pass
-    def show_popup_menu(self, items, on_done, <flags>):
+    def show_popup_menu(self, items, on_done, flags=None):
         """return None	Shows a pop up menu at the caret, to select an item in a list. on_done will be called once, with the index of the selected item. If the pop up menu was cancelled, on_done will be called with an argument of -1.
-
-Items is an array of strings.
-
-Flags currently only has no option."""
+        Items is an array of strings.
+        Flags currently only has no option."""
         pass

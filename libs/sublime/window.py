@@ -13,7 +13,7 @@ class Window(object):
         """ return View    Creates a new file. The returned view will be empty, and its is_loaded method will return True.
         """
         pass
-    def open_file(self, file_name, <flags>):
+    def open_file(self, file_name, flags=None):
         """ return View    Opens the named file, and returns the corresponding view. If the file is already opened, it will be brought to the front. Note that as file loading is asynchronous, operations on the returned view won't be possible until its is_loading() method returns False.
         The optional flags parameter is a bitwise combination of:
         sublime.ENCODED_POSITION. Indicates the file_name should be searched for a :row or :row:col suffix
@@ -80,11 +80,11 @@ class Window(object):
         """ return None    Updates the project data associated with the current window. If the window is associated with a .sublime-project file, the project file will be updated on disk, otherwise the window will store the data internally.
         """
         pass
-    def run_command(self, string, <args>):
+    def run_command(self, string, args=None):
         """ return None    Runs the named Command with the (optional) given arguments. Window.run_command is able to run both any sort of command, dispatching the command via input focus.
         """
         pass
-    def show_quick_panel(self, items, on_done, <flags>, <selected_index>, <on_highlighted>):
+    def show_quick_panel(self, items, on_done, flags=None, selected_index=None, on_highlighted=None):
         """ return None    Shows a quick panel, to select an item in a list. on_done will be called once, with the index of the selected item. If the quick panel was cancelled, on_done will be called with an argument of -1.
         Items may be an array of strings, or an array of string arrays. In the latter case, each entry in the quick panel will show multiple rows.
         Flags currently only has one option, sublime.MONOSPACE_FONT
@@ -95,7 +95,7 @@ class Window(object):
         """ return View    Shows the input panel, to collect a line of input from the user. on_done and on_change, if not None, should both be functions that expect a single string argument. on_cancel should be a function that expects no arguments. The view used for the input widget is returned.
         """
         pass
-    def create_output_panel(self, self, name):
+    def create_output_panel(self, name):
         """ return View    Returns the view associated with the named output panel, created it if required. The output panel can be shown by running the show_panel window command, with the panel argument set to the name with an "output." prefix.
         """
         pass
