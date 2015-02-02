@@ -1,19 +1,16 @@
 #!/usr/bin/env python
 
 class Settings(object):
-    def get(self, name):
+    def get(self, name, default=None):
         """get(name)    value    Returns the named setting.
+        get(self, name, default)    value    Returns the named setting, or default if it's not defined.
         """
-        pass
-    def get(self, name, default):
-        """get(self, name, default)    value    Returns the named setting, or default if it's not defined.
-        """
-        pass
+        return default
     def set(self, name, value):
         """    None    Sets the named setting. Only primitive types, lists, and dictionaries are accepted.
         """
         pass
-    def erase(name):
+    def erase(self, name):
         """    None    Removes the named setting. Does not remove it from any parent Settings.
         """
         pass
