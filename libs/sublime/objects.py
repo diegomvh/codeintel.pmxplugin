@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Sublime qt object emulator
-# https://www.sublimetext.com/docs/3/api_reference.html#sublime.Settings
+# https://www.sublimetext.com/docs/3/api_reference.html
 
 class Region(object):
     def __init__(self, a, b, xpos=-1):
