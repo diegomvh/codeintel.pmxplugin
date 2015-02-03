@@ -12,8 +12,15 @@ from .view import View
 from .window import Window
 
 pmx = qapplication()
+DESCRIPTOR = None
+
+def setup(manager, descriptor):
+    global DESCRIPTOR
+    DESCRIPTOR = descriptor
 
 def load_settings(base_name):
+    global DESCRIPTOR
+    print(base_name, DESCRIPTOR, DESCRIPTOR.path)
     return Settings()
 
 def active_window():
