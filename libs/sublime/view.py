@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from .selection import Selection
+from .region import Region
 
 class View(object):
     def __init__(self, editor):
@@ -66,12 +67,15 @@ class View(object):
     def size(self):
         """return int	Returns the number of character in the file."""
         pass
+        
     def substr(self, region):
-        """return String	Returns the contents of the region as a string."""
-        pass
-    def substr(self, point):
-        """return String	Returns the character to the right of the point."""
-        pass
+        """return String Returns the contents of the region as a string.
+        return String Returns the character to the right of the point.
+        """
+        if isinstance(region, Region):
+            return self._editor.toPlainTextWithEol()[region[:2]]
+        return self._editor.document().characterAt(point)
+
     def insert(self, edit, point, string):
         """return int	Inserts the given string in the buffer at the specified point. Returns the number of characters inserted: this may be different if tabs are being translated into spaces in the current buffer."""
         pass
@@ -81,9 +85,14 @@ class View(object):
     def replace(self, edit, region, string):
         """return None	Replaces the contents of the region with the given string."""
         pass
+
     def sel(self):
         """return Selection	Returns a reference to the selection."""
-        pass
+        sel = Selection()
+        for cursor in self._editor.textCursors():
+            sel.add(Region(cursor.position(), cursor.anchor()))    
+        return sel
+
     def line(self, point):
         """return Region	Returns the line that contains the point."""
         pass
@@ -147,11 +156,13 @@ class View(object):
     def extract_scope(self, point):
         """return Region	Returns the extent of the syntax name assigned to the character at the given point."""
         pass
+
     def scope_name(self, point):
-        """return String	Returns the syntax name assigned to the character at the given point."""
-        pass
+        """return String Returns the syntax name assigned to the character at the given point."""
+        return self._editor.scope(self._editor.newCursorAtPosition(point))[1]
+        
     def score_selector(self, point, selector):
-        """return Int	Matches the selector against the scope at the given location, returning a score. A score of 0 means no match, above 0 means a match. Different selectors may be compared against the same scope: a higher score means the selector is a better match for the scope."""
+        """return Int Matches the selector against the scope at the given location, returning a score. A score of 0 means no match, above 0 means a match. Different selectors may be compared against the same scope: a higher score means the selector is a better match for the scope."""
         pass
     def find_by_selector(self, selector):
         """return [Regions]	Finds all regions in the file matching the given selector, returning them as a list."""

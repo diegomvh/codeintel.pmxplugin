@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Sublime Plugins abstraction layer
-    
+
 class EventListener(object):
     def on_activated(self, view):
         pass

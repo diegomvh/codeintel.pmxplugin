@@ -15,6 +15,9 @@ class Selection(object):
     def __str__(self):
         return "<%s>" % ",".join(map(str, self._regions))
         
+    def __getitem__(self, index):
+        return self._regions[index]
+
     def clear(self):
         """clear()	None	Removes all regions.
         """
