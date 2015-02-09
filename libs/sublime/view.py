@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+import difflib
+
+from prymatex.utils import text as textutils
+
 from .selection import Selection
 from .region import Region
 
@@ -7,7 +11,15 @@ class View(object):
     def __init__(self, editor):
         super(View, self).__init__()
         self._editor = editor
+        self._command_history = []
+        self._command_index = len(self._command_history)
+        self._editor.document().redoAvailable.connect(self.on_document_redoAvailable)
+        self._editor.document().undoAvailable.connect(self.on_document_undoAvailable)
+        self._editor.document().undoCommandAdded.connect(self.on_document_undoCommandAdded)
+        self._editor.document().modificationChanged.connect(self.on_document_modificationChanged)
         self._event_listeners = []
+        self._commands = {}
+        self._content = ""
 
     def add_event_listener(self, listener):
         self._event_listeners.append(listener)
@@ -20,7 +32,34 @@ class View(object):
         self._editor.closed.connect(lambda view=self: listener.on_close(view))
         self._editor.textChanged.connect(lambda view=self: listener.on_modified(view))
         self._editor.selectionChanged.connect(lambda view=self: listener.on_selection_modified(view))
-        
+
+    def add_command(self, command):
+        names = textutils.camelcase_to_text(command.__class__.__name__).split()
+        name = "_".join(names[:-1])
+        print(name) 
+        self._commands[name] = command
+
+    # ------------ Undo / Redo
+    def on_document_modificationChanged(self, changed):
+        self._content = self._editor.toPlainText()
+
+    def on_document_redoAvailable(self, available):
+        print("Redo Available", available)
+
+    def on_document_undoAvailable(self, available):
+        print("Undo Available", available)
+
+    def on_document_undoCommandAdded(self):
+        print("Undo Command Added")
+        text = self._editor.toPlainText()
+        sequenceMatcher = difflib.SequenceMatcher(None, self._content, text)
+        opcodes = filter(lambda code: code[0] in ('insert', 'replace', 'delete'),
+            sequenceMatcher.get_opcodes())
+        commands = [ (code[0], { 'characters': text[code[3]:code[4]] }, 0) for code in opcodes ]
+        self._content = text
+        self._command_history = self._command_history[:self._command_index] + commands
+        self._command_index = len(self._command_history)
+
     def id(self):
         """id() int Returns a number that uniquely identifies this view."""
         return id(self._editor)
@@ -250,7 +289,10 @@ The underline styles are exclusive, either zero or one of them should be given. 
 Index 0 corresponds to the most recent command, -1 the command before that, and so on. Positive values for index indicate to look in the redo stack for commands. If the undo / redo history doesn't extend far enough, then (None, None, 0) will be returned.
 
 Setting modifying_only to True (the default is False) will only return entries that modified the buffer."""
-        return (None, None, 0)
+        index = self._command_index + index
+        if index > len(self._command_history):
+            return (None, None, 0)
+        return self._command_history[index]
 
     def change_count(self):
         """return int	Returns the current change count. Each time the buffer is modified, the change count is incremented. The change count can be used to determine if the buffer has changed since the last it was inspected."""
