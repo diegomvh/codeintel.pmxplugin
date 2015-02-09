@@ -57,7 +57,8 @@ class View(object):
         pass
     def settings(self):
         """return Settings	Returns a reference to the views settings object. Any changes to this settings object will be private to this view."""
-        pass
+        return self._editor.settings()
+
     def window(self):
         """return Window	Returns a reference to the window containing the view."""
         pass
@@ -73,7 +74,7 @@ class View(object):
         return String Returns the character to the right of the point.
         """
         if isinstance(region, Region):
-            return self._editor.toPlainTextWithEol()[region[:2]]
+            return self._editor.toPlainTextWithEol()[region[0]:region[1]]
         return self._editor.document().characterAt(point)
 
     def insert(self, edit, point, string):
@@ -159,7 +160,7 @@ class View(object):
 
     def scope_name(self, point):
         """return String Returns the syntax name assigned to the character at the given point."""
-        return self._editor.scope(self._editor.newCursorAtPosition(point))[1]
+        return str(self._editor.scope(self._editor.newCursorAtPosition(point))[1])
         
     def score_selector(self, point, selector):
         """return Int Matches the selector against the scope at the given location, returning a score. A score of 0 means no match, above 0 means a match. Different selectors may be compared against the same scope: a higher score means the selector is a better match for the scope."""
@@ -249,7 +250,8 @@ The underline styles are exclusive, either zero or one of them should be given. 
 Index 0 corresponds to the most recent command, -1 the command before that, and so on. Positive values for index indicate to look in the redo stack for commands. If the undo / redo history doesn't extend far enough, then (None, None, 0) will be returned.
 
 Setting modifying_only to True (the default is False) will only return entries that modified the buffer."""
-        pass
+        return (None, None, 0)
+
     def change_count(self):
         """return int	Returns the current change count. Each time the buffer is modified, the change count is incremented. The change count can be used to determine if the buffer has changed since the last it was inspected."""
         pass

@@ -497,7 +497,7 @@ def autocomplete(view, timeout, busy_timeout, forms, preemptive=False, args=[], 
             global cplns_were_empty, last_trigger_name, last_citdl_expr
 
             add_word_completions = settings_manager.get("codeintel_word_completions", language=lang)
-
+            print(cplns)
             if cplns is not None or calltips is not None:
                 codeintel_log.info("Autocomplete called (%s) [%s]", lang, ','.join(c for c in ['cplns' if cplns else None, 'calltips' if calltips else None] if c))
 
@@ -1429,7 +1429,7 @@ class PythonCodeIntel(sublime_plugin.EventListener):
         lang = guess_lang(view, path, sublime_scope)
         if not lang:
             return
-        print(lang)
+        
         exclude_scopes = settings_manager.get("codeintel_exclude_scopes_from_complete_triggers", language=lang, default=[])
 
         for exclude_scope in exclude_scopes:
@@ -1453,7 +1453,6 @@ class PythonCodeIntel(sublime_plugin.EventListener):
         sel = view_sel[0]
         pos = sel.end()
         next_char = view.substr(sublime.Region(pos - 1, pos))
-        print(next_char)
         is_fill_char = next_char and next_char in cpln_fillup_chars.get(lang, '')
         is_stop_char = next_char and next_char in cpln_stop_chars.get(lang, '')
 
