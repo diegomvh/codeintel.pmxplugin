@@ -698,7 +698,6 @@ def codeintel_callbacks(force=False):
         __lock_.release()
     for view, callback, args, kwargs in views:
         def _callback():
-            print(view, args, kwargs)
             callback(view, *args, **kwargs)
         sublime.set_timeout(_callback, 0)
     # saving and culling cached parts of the database:
@@ -1463,7 +1462,7 @@ class PythonCodeIntel(sublime_plugin.EventListener):
         if is_stop_char:
             hide_auto_complete(view)
 
-        print('on_modified', view.command_history(1), view.command_history(0), view.command_history(-1))
+        # print('on_modified', view.command_history(1), view.command_history(0), view.command_history(-1))
         if (not hasattr(view, 'command_history') or view.command_history(1)[1] is None and (
                 view.command_history(0)[0] == 'insert' and (
                     view.command_history(0)[1]['characters'][-1] != '\n'
