@@ -12,11 +12,10 @@ class View(object):
         super(View, self).__init__()
         self._editor = editor
         self._command_history = []
-        self._command_index = len(self._command_history)
+        self._command_index = len(self._command_history) - 1
         self._editor.document().redoAvailable.connect(self.on_document_redoAvailable)
         self._editor.document().undoAvailable.connect(self.on_document_undoAvailable)
-        self._editor.document().undoCommandAdded.connect(self.on_document_undoCommandAdded)
-        self._editor.document().modificationChanged.connect(self.on_document_modificationChanged)
+        self._editor.document().contentsChange.connect(self.on_document_contentsChange)
         self._event_listeners = []
         self._commands = {}
         self._content = ""
@@ -36,12 +35,7 @@ class View(object):
     def add_command(self, command):
         names = textutils.camelcase_to_text(command.__class__.__name__).split()
         name = "_".join(names[:-1])
-        print(name) 
         self._commands[name] = command
-
-    # ------------ Undo / Redo
-    def on_document_modificationChanged(self, changed):
-        self._content = self._editor.toPlainText()
 
     def on_document_redoAvailable(self, available):
         print("Redo Available", available)
@@ -49,16 +43,18 @@ class View(object):
     def on_document_undoAvailable(self, available):
         print("Undo Available", available)
 
-    def on_document_undoCommandAdded(self):
-        print("Undo Command Added")
+    def on_document_contentsChange(self, position, charsRemoved, charsAdded):
         text = self._editor.toPlainText()
-        sequenceMatcher = difflib.SequenceMatcher(None, self._content, text)
-        opcodes = filter(lambda code: code[0] in ('insert', 'replace', 'delete'),
-            sequenceMatcher.get_opcodes())
-        commands = [ (code[0], { 'characters': text[code[3]:code[4]] }, 0) for code in opcodes ]
+        if charsRemoved:
+            self._command_history.append(
+                ('delete', { 'characters': self._content[position:position + charsRemoved] }, 0)
+            )
+        if charsAdded:
+            self._command_history.append(
+                ('insert', { 'characters': text[position:position + charsAdded] }, 0)
+            )
         self._content = text
-        self._command_history = self._command_history[:self._command_index] + commands
-        self._command_index = len(self._command_history)
+        self._command_index = len(self._command_history) - 1
 
     def id(self):
         """id() int Returns a number that uniquely identifies this view."""
@@ -133,18 +129,23 @@ class View(object):
             sel.add(Region(cursor.position(), cursor.anchor()))    
         return sel
 
-    def line(self, point):
-        """return Region	Returns the line that contains the point."""
+    def line(self, point_region):
+        """return Region	Returns the line that contains the point.
+        return Region	Returns a modified copy of region such that it starts at the beginning of a line, and ends at the end of a line. Note that it may span several lines.
+        """
+        if isinstance(point_region, Region):
+            cursor = self._editor.newCursorAtPosition(point_region[0], point_region[1])
+            block_start, block_end = self._editor.selectionBlockStartEnd(cursor)
+            return Region(block_start.position(), block_end.position() + block_end.length())
+        block = self._editor.document().findBlock(point_region)
+        return Region(block.position(), block.position() + block.length())
+
+    def full_line(self, point_region):
+        """return Region	As line(), but the region includes the trailing newline character, if any.
+        return Region	As line(), but the region includes the trailing newline character, if any.
+        """
         pass
-    def line(self, region):
-        """return Region	Returns a modified copy of region such that it starts at the beginning of a line, and ends at the end of a line. Note that it may span several lines."""
-        pass
-    def full_line(self, point):
-        """return Region	As line(), but the region includes the trailing newline character, if any."""
-        pass
-    def full_line(self, region):
-        """return Region	As line(), but the region includes the trailing newline character, if any."""
-        pass
+    
     def lines(self, region):
         """return [Region]	Returns a list of lines (in sorted order) intersecting the region."""
         pass
@@ -184,9 +185,12 @@ class View(object):
     def find_all(self, pattern, flags=None, format=None, extractions=None):
         """return [Region]	Returns all (non-overlapping) regions matching the regex pattern. The optional flags parameter may be sublime.LITERAL, sublime.IGNORECASE, or the two ORed together. If a format string is given, then all matches will be formatted with the formatted string and placed into the extractions list."""
         pass
+
     def rowcol(self, point):
         """return (int, int)	Calculates the 0 based line and column numbers of the point."""
-        pass
+        cursor = self._editor.newCursorAtPosition(point)
+        return cursor.blockNumber(), cursor.positionInBlock()
+        
     def text_point(self, row, col):
         """return int	Calculates the character offset of the given, 0 based, row and column. Note that 'col' is interpreted as the number of characters to advance past the beginning of the row."""
         pass
@@ -290,9 +294,9 @@ Index 0 corresponds to the most recent command, -1 the command before that, and 
 
 Setting modifying_only to True (the default is False) will only return entries that modified the buffer."""
         index = self._command_index + index
-        if index > len(self._command_history):
-            return (None, None, 0)
-        return self._command_history[index]
+        if 0 <= index < len(self._command_history):
+            return self._command_history[index]
+        return (None, None, 0)
 
     def change_count(self):
         """return int	Returns the current change count. Each time the buffer is modified, the change count is incremented. The change count can be used to determine if the buffer has changed since the last it was inspected."""

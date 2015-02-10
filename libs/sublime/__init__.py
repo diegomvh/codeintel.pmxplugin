@@ -2,6 +2,7 @@
 # Sublime qt abstraction layer
 
 import os
+import threading
 
 from prymatex.qt import QtCore
 from prymatex.qt.helpers import qapplication
@@ -14,6 +15,8 @@ from .selection import Selection
 from .settings import Settings
 from .view import View
 from .window import Window
+
+timer_thread_name = "Sublime Timer"
 
 pmx = qapplication()
 DESCRIPTOR = None
@@ -39,5 +42,7 @@ def load_settings(base_name):
 def active_window():
     return Window(pmx.currentWindow())
 
-def set_timeout(callback, delay):
-    QtCore.QTimer.singleShot(delay, callback)
+def set_timeout(callback, delay, *args, **kwargs):
+    timer = threading.Timer(delay / 1000, callback, args, kwargs)
+    timer.name = timer_thread_name
+    timer.start()

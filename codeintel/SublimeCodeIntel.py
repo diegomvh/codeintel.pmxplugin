@@ -89,6 +89,9 @@ except ImportError:
     from cStringIO import StringIO
     string_types = basestring
 
+CODEINTEL_HOME_DIR = os.path.expanduser(os.path.join('~', '.codeintel'))
+__file__ = os.path.normpath(os.path.abspath(__file__))
+__path__ = os.path.dirname(__file__)
 
 cplns_were_empty = None
 last_trigger_name = None
@@ -492,12 +495,11 @@ def autocomplete(view, timeout, busy_timeout, forms, preemptive=False, args=[], 
 
         lpos = view.line(sel).begin()
         text_in_current_line = view.substr(sublime.Region(lpos, pos + 1))
-
+        
         def _trigger(trigger, citdl_expr, calltips=None, cplns=None):
             global cplns_were_empty, last_trigger_name, last_citdl_expr
 
             add_word_completions = settings_manager.get("codeintel_word_completions", language=lang)
-            print(cplns)
             if cplns is not None or calltips is not None:
                 codeintel_log.info("Autocomplete called (%s) [%s]", lang, ','.join(c for c in ['cplns' if cplns else None, 'calltips' if calltips else None] if c))
 
@@ -585,11 +587,11 @@ def queue_loop():
         modifications for some time as to not slow down the UI with autocompletes."""
     global __signaled_, __signaled_first_
     while __loop_:
-        # print('acquire...')
+        print('acquire...')
         __semaphore_.acquire()
         __signaled_first_ = 0
         __signaled_ = 0
-        # print("DISPATCHING!", len(QUEUE))
+        print("DISPATCHING!", len(QUEUE))
         queue_dispatcher()
 
 
@@ -606,8 +608,8 @@ def queue(view, callback, timeout, busy_timeout=None, preemptive=False, args=[],
         _delay_queue(timeout, preemptive)
         if not __signaled_first_:
             __signaled_first_ = __signaled_
-            # print('first',)
-        # print('queued in', (__signaled_ - now))
+            print('first',)
+        print('queued in', (__signaled_ - now))
     finally:
         __lock_.release()
 
@@ -628,7 +630,7 @@ def _delay_queue(timeout, preemptive):
     new__signaled_ = now + _timeout - 0.01
     if __signaled_ >= now - 0.01 and (preemptive or new__signaled_ >= __signaled_ - 0.01):
         __signaled_ = new__signaled_
-        # print('delayed to', (preemptive, __signaled_ - now))
+        print('delayed to', (preemptive, __signaled_ - now))
 
         def _signal():
             if time.time() < __signaled_:
@@ -696,6 +698,7 @@ def codeintel_callbacks(force=False):
         __lock_.release()
     for view, callback, args, kwargs in views:
         def _callback():
+            print(view, args, kwargs)
             callback(view, *args, **kwargs)
         sublime.set_timeout(_callback, 0)
     # saving and culling cached parts of the database:
@@ -1460,7 +1463,7 @@ class PythonCodeIntel(sublime_plugin.EventListener):
         if is_stop_char:
             hide_auto_complete(view)
 
-        # print('on_modified', view.command_history(1), view.command_history(0), view.command_history(-1))
+        print('on_modified', view.command_history(1), view.command_history(0), view.command_history(-1))
         if (not hasattr(view, 'command_history') or view.command_history(1)[1] is None and (
                 view.command_history(0)[0] == 'insert' and (
                     view.command_history(0)[1]['characters'][-1] != '\n'
