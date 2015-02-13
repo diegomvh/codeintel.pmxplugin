@@ -678,6 +678,14 @@ __active_codeintel_thread = threading.Thread(target=queue_loop, name=queue_threa
 __active_codeintel_thread.__semaphore_ = __semaphore_
 __active_codeintel_thread.start()
 
+import atexit
+
+def finalize():
+    global __loop_
+    __loop_ = False
+    queue_finalize()
+atexit.register(finalize)
+
 ################################################################################
 
 if not __pre_initialized_:

@@ -3,8 +3,8 @@
 
 from prymatex.gui.codeeditor import CodeEditor
 from codeintel.addons import CodeIntelAddon
-from sublime import setup as setup_sublime
+from sublime import setup_sublime_adapter
 
 def registerPlugin(manager, descriptor):
-    setup_sublime(manager, descriptor)
+    setup_sublime_adapter(manager, descriptor)
     manager.registerComponent(CodeIntelAddon, CodeEditor)

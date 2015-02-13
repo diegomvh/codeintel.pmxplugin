@@ -22,7 +22,7 @@ pmx = qapplication()
 DESCRIPTOR = None
 SETTINGS = {}
 
-def setup(manager, descriptor):
+def setup_sublime_adapter(manager, descriptor):
     global DESCRIPTOR, SETTINGS
     
     # Descriptor
