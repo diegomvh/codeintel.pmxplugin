@@ -1246,7 +1246,7 @@ class LangZone(object):
 
             now = time.time()
             for dbsubpath, (index, atime) \
-                    in self._index_and_atime_from_dbsubpath.items():
+                    in list(self._index_and_atime_from_dbsubpath.items()):
                 if now - atime > TIME_SINCE_ACCESS:
                     if dbsubpath in self._is_index_dirty_from_dbsubpath:
                         self.save_index(dbsubpath, index)

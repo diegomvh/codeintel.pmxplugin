@@ -197,6 +197,7 @@ def show_auto_complete(view, on_query_info,
                        disable_auto_insert=True, api_completions_only=True,
                        next_completion_if_showing=False, auto_complete_commit_on_tab=True):
     # Show autocompletions:
+    print(on_query_info)
     def _show_auto_complete():
         view.run_command('auto_complete', {
             'disable_auto_insert': disable_auto_insert,
@@ -587,11 +588,11 @@ def queue_loop():
         modifications for some time as to not slow down the UI with autocompletes."""
     global __signaled_, __signaled_first_
     while __loop_:
-        print('acquire...')
+        # print('acquire...')
         __semaphore_.acquire()
         __signaled_first_ = 0
         __signaled_ = 0
-        print("DISPATCHING!", len(QUEUE))
+        # print("DISPATCHING!", len(QUEUE))
         queue_dispatcher()
 
 

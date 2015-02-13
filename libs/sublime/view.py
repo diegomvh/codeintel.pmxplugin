@@ -5,6 +5,7 @@ import difflib
 from prymatex.utils import text as textutils
 
 from .selection import Selection
+from .settings import Settings
 from .region import Region
 
 class View(object):
@@ -92,7 +93,7 @@ class View(object):
         pass
     def settings(self):
         """return Settings	Returns a reference to the views settings object. Any changes to this settings object will be private to this view."""
-        return self._editor.settings()
+        return Settings(self._editor.settings(), self._editor)
 
     def window(self):
         """return Window	Returns a reference to the window containing the view."""

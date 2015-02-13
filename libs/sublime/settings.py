@@ -1,13 +1,22 @@
 #!/usr/bin/env python
 
+# Sublime custom names
+SUBLIME_MAPPING = {
+    'syntax': lambda settings, editor: editor and editor.syntax().currentSourcePath()
+}
+
 class Settings(object):
-    def __init__(self, settings):
+    def __init__(self, settings, editor=None):
         self._settings = settings
+        self._editor = editor
         
     def get(self, name, default=None):
         """return value Returns the named setting.
         return value Returns the named setting, or default if it's not defined.
         """
+        global SUBLIME_MAPPING
+        if name in SUBLIME_MAPPING:
+            return SUBLIME_MAPPING[name](self._settings, self._editor) or default
         return self._settings.get(name, default)
 
     def set(self, name, value):
