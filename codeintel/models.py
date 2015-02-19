@@ -8,17 +8,16 @@ class CodeIntelCompletionModel(CompletionBaseModel):
     def __init__(self, **kwargs):
         super(CodeIntelCompletionModel, self).__init__(**kwargs)
         self.suggestions = []
+        self.flags = None
 
-    def setSuggestions(self, suggestions):
-        self.modelAboutToBeReset.emit()
-        self.suggestions = suggestions
-        self.modelReset.emit()
-        self.suggestionsReady.emit()
-        
     def fill(self):
-        self.suggestions = []
-        print("Vamos a completer")
-    
+        self.suggestions, self.flags = self.parent().view.query_completions(
+            self.completionPrefix(), 
+            [1,2,3,4]
+        )
+        print(self.suggestions)
+        self.suggestionsReady.emit()
+
     def isReady(self):
         return bool(self.suggestions)
     
