@@ -50,7 +50,7 @@ class View(object):
             self._command_history.append(
                 ('delete', { 'characters': self._content[position:position + charsRemoved] }, 0)
             )
-        if charsAdded:
+        if text and charsAdded:
             self._command_history.append(
                 ('insert', { 'characters': text[position:position + charsAdded] }, 0)
             )

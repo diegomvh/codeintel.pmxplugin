@@ -15,7 +15,7 @@ from sublime import View
 from sublime_plugin import InsertSnippetCommand
 
 from codeintel.models import CodeIntelCompletionModel
-from codeintel.SublimeCodeIntel import PythonCodeIntel
+from codeintel.SublimeCodeIntel import PythonCodeIntel, queue_finalize
 
 class CodeIntelAddon(CodeEditorAddon):
 
@@ -27,11 +27,18 @@ class CodeIntelAddon(CodeEditorAddon):
         self.view = View(self.editor)
         self.view.add_event_listener(PythonCodeIntel())
         self.view.add_command(InsertSnippetCommand())
-
+        self.application().aboutToQuit.connect(self.finalize)
+        
         self.complition_model = CodeIntelCompletionModel(parent=self)
         complition = self.editor.findAddon(CodeEditorComplitionMode)
         complition.registerModel(self.complition_model)
 
+    def finalize(self):
+        import threading
+        print(threading.current_thread().name)
+        for thread in threading.enumerate():
+            print(thread.name)
+            
     # ---------------- Shortcuts
     def contributeToShortcuts(self):
         return [{

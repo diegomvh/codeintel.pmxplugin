@@ -588,11 +588,11 @@ def queue_loop():
         modifications for some time as to not slow down the UI with autocompletes."""
     global __signaled_, __signaled_first_
     while __loop_:
-        # print('acquire...')
+        print('acquire...')
         __semaphore_.acquire()
         __signaled_first_ = 0
         __signaled_ = 0
-        # print("DISPATCHING!", len(QUEUE))
+        print("DISPATCHING!", len(QUEUE))
         queue_dispatcher()
 
 
@@ -677,14 +677,6 @@ __loop_ = True
 __active_codeintel_thread = threading.Thread(target=queue_loop, name=queue_thread_name)
 __active_codeintel_thread.__semaphore_ = __semaphore_
 __active_codeintel_thread.start()
-
-import atexit
-
-def finalize():
-    global __loop_
-    __loop_ = False
-    queue_finalize()
-atexit.register(finalize)
 
 ################################################################################
 
