@@ -1,5 +1,5 @@
 from xml.etree.ElementTree import *
-  
+
 # Import the C accelerators
 try:
     # Element, SubElement, ParseError, TreeBuilder, XMLParser
@@ -8,13 +8,13 @@ except ImportError:
     _patched_for_komodo_ = False
 else:
     from xml.etree.ElementTree import _ListDataStream
-  
+
     _patched_for_komodo_ = True
-  
+
     # Overwrite 'ElementTree.parse' and 'iterparse' to use the C XMLParser
-  
+
     class ElementTree(ElementTree):
-  
+
         def parse(self, source, parser=None):
             close_source = False
             if not hasattr(source, 'read'):
@@ -35,10 +35,10 @@ else:
             finally:
                 if close_source:
                     source.close()
-  
+
     class iterparse:
         """Parses an XML section into an element tree incrementally.
-  
+
         Reports what’s going on to the user. 'source' is a filename or file
         object containing XML data. 'events' is a list of events to report back.
         The supported events are the strings "start", "end", "start-ns" and
@@ -48,7 +48,7 @@ else:
         XMLParser parser is used. Returns an iterator providing
         (event, elem) pairs.
         """
-  
+
         root = None
         def __init__(self, file, events=None, parser=None):
             self._close_file = False
@@ -64,7 +64,7 @@ else:
                 parser = XMLParser(target=TreeBuilder())
             self._parser = parser
             self._parser._setevents(self._events, events)
-  
+
         def __next__(self):
             while True:
                 try:
@@ -94,25 +94,25 @@ else:
                 else:
                     self._root = self._parser.close()
                     self._parser = None
-  
+
         def __iter__(self):
             return self
-  
+
     def XML(text, parser=None):
         if not parser:
             parser = XMLParser(target=TreeBuilder())
         parser.feed(text)
         return parser.close()
-  
+
     fromstring = XML
-  
+
     def fromstringlist(sequence, parser=None):
         if not parser:
             parser = XMLParser(target=TreeBuilder())
         for text in sequence:
             parser.feed(text)
         return parser.close()
-  
+
     def XMLID(text, parser=None):
         if not parser:
             parser = XMLParser(target=TreeBuilder())
@@ -124,18 +124,18 @@ else:
             if id:
                 ids[id] = elem
         return tree, ids
-  
+
     def tostring(element, encoding=None, method=None):
         stream = io.StringIO() if encoding == 'unicode' else io.BytesIO()
         ElementTree(element).write(stream, encoding, method=method)
         return stream.getvalue()
-  
+
     def tostringlist(element, encoding=None, method=None):
         lst = []
         stream = _ListDataStream(lst)
         ElementTree(element).write(stream, encoding, method=method)
         return lst
-  
+
     def dump(elem):
         if not isinstance(elem, ElementTree):
             elem = ElementTree(elem)
@@ -143,10 +143,10 @@ else:
         tail = elem.getroot().tail
         if not tail or tail[-1] != "\n":
             sys.stdout.write("\n")
-  
+
     def parse(source, parser=None):
         tree = ElementTree()
         tree.parse(source, parser)
         return tree
-  
+
     XMLTreeBuilder = XMLParser

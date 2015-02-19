@@ -89,6 +89,7 @@ except ImportError:
     from cStringIO import StringIO
     string_types = basestring
 
+
 CODEINTEL_HOME_DIR = os.path.expanduser(os.path.join('~', '.codeintel'))
 __file__ = os.path.normpath(os.path.abspath(__file__))
 __path__ = os.path.dirname(__file__)
@@ -197,7 +198,6 @@ def show_auto_complete(view, on_query_info,
                        disable_auto_insert=True, api_completions_only=True,
                        next_completion_if_showing=False, auto_complete_commit_on_tab=True):
     # Show autocompletions:
-    print(on_query_info)
     def _show_auto_complete():
         view.run_command('auto_complete', {
             'disable_auto_insert': disable_auto_insert,
@@ -496,11 +496,12 @@ def autocomplete(view, timeout, busy_timeout, forms, preemptive=False, args=[], 
 
         lpos = view.line(sel).begin()
         text_in_current_line = view.substr(sublime.Region(lpos, pos + 1))
-        
+
         def _trigger(trigger, citdl_expr, calltips=None, cplns=None):
             global cplns_were_empty, last_trigger_name, last_citdl_expr
 
             add_word_completions = settings_manager.get("codeintel_word_completions", language=lang)
+
             if cplns is not None or calltips is not None:
                 codeintel_log.info("Autocomplete called (%s) [%s]", lang, ','.join(c for c in ['cplns' if cplns else None, 'calltips' if calltips else None] if c))
 
@@ -609,8 +610,8 @@ def queue(view, callback, timeout, busy_timeout=None, preemptive=False, args=[],
         _delay_queue(timeout, preemptive)
         if not __signaled_first_:
             __signaled_first_ = __signaled_
-            print('first',)
-        print('queued in', (__signaled_ - now))
+            # print('first',)
+        # print('queued in', (__signaled_ - now))
     finally:
         __lock_.release()
 
@@ -631,7 +632,7 @@ def _delay_queue(timeout, preemptive):
     new__signaled_ = now + _timeout - 0.01
     if __signaled_ >= now - 0.01 and (preemptive or new__signaled_ >= __signaled_ - 0.01):
         __signaled_ = new__signaled_
-        print('delayed to', (preemptive, __signaled_ - now))
+        # print('delayed to', (preemptive, __signaled_ - now))
 
         def _signal():
             if time.time() < __signaled_:
@@ -677,14 +678,6 @@ __loop_ = True
 __active_codeintel_thread = threading.Thread(target=queue_loop, name=queue_thread_name)
 __active_codeintel_thread.__semaphore_ = __semaphore_
 __active_codeintel_thread.start()
-
-import atexit
-
-def finalize():
-    global __loop_
-    __loop_ = False
-    queue_finalize()
-atexit.register(finalize)
 
 ################################################################################
 
@@ -1440,14 +1433,14 @@ class PythonCodeIntel(sublime_plugin.EventListener):
         lang = guess_lang(view, path, sublime_scope)
         if not lang:
             return
-        
+
         exclude_scopes = settings_manager.get("codeintel_exclude_scopes_from_complete_triggers", language=lang, default=[])
 
         for exclude_scope in exclude_scopes:
             if exclude_scope in sublime_scope:
                 return
 
-        if not settings_manager.get('codeintel_live', default=True, language=lang):
+        if not lang or lang.lower() not in [l.lower() for l in settings_manager.get('codeintel_enabled_languages', [])]:
             # restore the original sublime auto_complete settings from Preferences.sublime-settings file in User package
             # this is for files with mixed languages (HTML/PHP)
             view.settings().set('auto_complete', settings_manager.sublime_auto_complete)
@@ -1464,6 +1457,7 @@ class PythonCodeIntel(sublime_plugin.EventListener):
         sel = view_sel[0]
         pos = sel.end()
         next_char = view.substr(sublime.Region(pos - 1, pos))
+
         is_fill_char = next_char and next_char in cpln_fillup_chars.get(lang, '')
         is_stop_char = next_char and next_char in cpln_stop_chars.get(lang, '')
 
@@ -1519,6 +1513,11 @@ class PythonCodeIntel(sublime_plugin.EventListener):
 
     def on_query_completions(self, view, prefix, locations):
         vid = view.id()
+
+        lang = guess_lang(view)
+        if not lang or lang.lower() not in [l.lower() for l in settings_manager.get('codeintel_enabled_languages', [])]:
+            # lang is not ci enabled. Dont mess with the default completions!
+            return []
 
         # add sublime completions to the mix / not recomended
         sublime_word_completions = False

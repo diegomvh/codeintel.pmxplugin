@@ -34,7 +34,6 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-from __future__ import unicode_literals
 
 """Code Intelligence: common definitions"""
 # Dev Notes:
@@ -604,16 +603,16 @@ class LogEvalController(EvalController):
         EvalController.__init__(self)
 
     def debug(self, msg, *args):
-        self.logger.debug("%s" % msg, *args)
+        self.logger.debug(msg, *args)
 
     def info(self, msg, *args):
-        self.logger.info("%s" % msg, *args)
+        self.logger.info(msg, *args)
 
     def warn(self, msg, *args):
-        self.logger.warn("%s" % msg, *args)
+        self.logger.warn(msg, *args)
 
     def error(self, msg, *args):
-        self.logger.error("%s" % msg, *args)
+        self.logger.error(msg, *args)
 
 
 class Evaluator(object):

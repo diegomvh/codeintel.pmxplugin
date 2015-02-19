@@ -57,10 +57,7 @@ from io import StringIO
 import codecs
 import copy
 import weakref
-try:
-    import queue
-except ImportError:
-    import Queue as queue
+import queue
 
 import ciElementTree as ET
 from codeintel2.common import *
@@ -139,7 +136,7 @@ class CatalogsZone(object):
         """
         if self._res_ids_from_selector_cache is None:
             cache = self._res_ids_from_selector_cache = {}
-            for cix_area_path, res_data in self.res_index.items():
+            for cix_area_path, res_data in list(self.res_index.items()):
                 cix_path = AreaResource(cix_area_path).path
                 res_id = res_data[0]
                 cache[normpath(normcase(cix_path))] = [res_id]
@@ -152,7 +149,7 @@ class CatalogsZone(object):
         res_ids = []
         missing_selections = []
         for selector, selection \
-                in self._selection_from_selector(selections).items():
+                in list(self._selection_from_selector(selections).items()):
             try:
                 res_ids += self._res_ids_from_selector_cache[selector]
             except KeyError as ex:
@@ -269,8 +266,8 @@ class CatalogsZone(object):
             log.info("catalog: culling memory")
             now = time.time()
             for lang, blob_and_atime_from_blobname \
-                    in self._blob_and_atime_from_blobname_from_lang_cache.items():
-                for blobname, (blob, atime) in blob_and_atime_from_blobname.items():
+                    in list(self._blob_and_atime_from_blobname_from_lang_cache.items()):
+                for blobname, (blob, atime) in list(blob_and_atime_from_blobname.items()):
                     if now - atime > 300.0:  # >5 minutes since last access
                         del blob_and_atime_from_blobname[blobname]
         finally:
@@ -289,8 +286,8 @@ class CatalogsZone(object):
 
         total_mem_usage = 0
         result = {}
-        for lang, blob_and_atime_from_blobname in self._blob_and_atime_from_blobname_from_lang_cache.items():
-            for blobname, [blob, atime] in blob_and_atime_from_blobname.items():
+        for lang, blob_and_atime_from_blobname in list(self._blob_and_atime_from_blobname_from_lang_cache.items()):
+            for blobname, [blob, atime] in list(blob_and_atime_from_blobname.items()):
                 result["explicit/python/codeintel/%s/catalog/%s" % (lang, blobname)] = {
                     "amount": memutils.memusage(blob),
                     "units": "bytes",
@@ -380,7 +377,7 @@ class CatalogsZone(object):
                 except:
                     log.exception("error in progress_cb (ignoring)")
             res_name_from_res_path = dict(  # this is our checklist
-                (p, v[2]) for p, v in self.res_index.items())
+                (p, v[2]) for p, v in list(self.res_index.items()))
             todos = []
             log.info("updating %s: %d catalog dir(s)", self,
                      len(self.catalog_dirs))
@@ -404,7 +401,7 @@ class CatalogsZone(object):
                     #              catalog_info["name"])
                     del res_name_from_res_path[res.area_path]  # tick it off
 
-            for res_area_path, res_name in res_name_from_res_path.items():
+            for res_area_path, res_name in list(res_name_from_res_path.items()):
                 # remove this obsolete CIX file
                 try:
                     todos.append(("remove", AreaResource(
@@ -505,7 +502,7 @@ class CatalogsZone(object):
     def _new_res_id(self):
         if self._existing_res_ids_cache is None:
             self._existing_res_ids_cache \
-                = dict((d[0], True) for d in self.res_index.values())
+                = dict((d[0], True) for d in list(self.res_index.values()))
         while True:
             if self._new_res_id_counter not in self._existing_res_ids_cache:
                 new_res_id = self._new_res_id_counter
@@ -518,9 +515,9 @@ class CatalogsZone(object):
         LEN_PREFIX = self.db.LEN_PREFIX
         res_id, last_updated, name, res_data = self.res_index[res.area_path]
         # res_data: {lang -> blobname -> ilk -> toplevelnames}
-        for lang, tfifb in res_data.items():
+        for lang, tfifb in list(res_data.items()):
             dbfile_and_res_id_from_blobname = self.blob_index[lang]
-            for blobname, toplevelnames_from_ilk in tfifb.items():
+            for blobname, toplevelnames_from_ilk in list(tfifb.items()):
                 # Update 'blob_index' for $lang.
                 dbfile, res_id = dbfile_and_res_id_from_blobname[blobname]
                 del dbfile_and_res_id_from_blobname[blobname]
@@ -804,7 +801,7 @@ class CatalogLib(object):
             else:
                 matches = filter_blobnames_for_prefix(
                     (bn
-                     for bn, (f, res_id) in dbfile_and_res_id_from_blobname.items()
+                     for bn, (f, res_id) in list(dbfile_and_res_id_from_blobname.items())
                      if res_id in self.selection_res_id_set),
                     prefix,
                     self.import_handler.sep)

@@ -1312,10 +1312,10 @@ class PerlImportHandler(ImportHandler):
             compiler = which.which("perl")
         self.corePath = self._shellOutForPath(compiler)
 
-    def _findScannableFiles(self,
-                            files, searchedDirs,
-                            skipTheseDirs, skipRareImports,
+    def _findScannableFiles(self, xxx_todo_changeme,
                             dirname, names):
+        (files, searchedDirs,
+                             skipTheseDirs, skipRareImports) = xxx_todo_changeme
         if sys.platform.startswith("win"):
             cpath = dirname.lower()
         else:

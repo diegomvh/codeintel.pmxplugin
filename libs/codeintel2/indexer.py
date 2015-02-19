@@ -55,10 +55,7 @@ import sys
 import threading
 import time
 import bisect
-try:
-    import queue
-except ImportError:
-    import Queue as queue
+import queue
 from hashlib import md5
 import traceback
 
@@ -267,7 +264,7 @@ class _StagingRequestQueue(_UniqueRequestPriorityQueue):
             currTime = time.time()
             toQueue = []
             try:
-                for id, (timeDue, priority, item) in self._onDeck.items():
+                for id, (timeDue, priority, item) in list(self._onDeck.items()):
                     if currTime >= timeDue:
                         toQueue.append(item)
                         del self._onDeck[id]

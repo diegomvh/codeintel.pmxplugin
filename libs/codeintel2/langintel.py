@@ -53,7 +53,6 @@ Dev Notes:
 - Usage of LangIntel objects in code should always use 'langintel' in
   the variable name.
 """
-from __future__ import print_function
 
 import os
 import re

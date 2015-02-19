@@ -1055,7 +1055,7 @@ class PHPLangIntel(CitadelLangIntel, ParenStyleCalltipIntelMixin,
 
         fd, filepath = tempfile.mkstemp(suffix=".php")
         try:
-            os.write(fd, info_cmd)
+            os.write(fd, info_cmd.encode('utf-8'))
             os.close(fd)
             argv.append(filepath)
             p = process.ProcessOpen(argv, env=env.get_all_envvars())
@@ -1319,7 +1319,8 @@ class PHPImportHandler(ImportHandler):
                                  "PHP include path. 'corePath' must be set "
                                  "manually.")
 
-    def _findScannableFiles(self, files, searchedDirs, dirname, names):
+    def _findScannableFiles(self, xxx_todo_changeme, dirname, names):
+        (files, searchedDirs) = xxx_todo_changeme
         if sys.platform.startswith("win"):
             cpath = dirname.lower()
         else:
@@ -1473,16 +1474,8 @@ TYPE_CLASS = 7
 TYPE_PARENT = 8
 
 
-def _sortByLineCmp(val1, val2):
-    try:
-    # if hasattr(val1, "line") and hasattr(val2, "line"):
-        return cmp(val1.linestart, val2.linestart)
-    except AttributeError:
-        return cmp(val1, val2)
-
-
 def sortByLine(seq):
-    seq.sort(_sortByLineCmp)
+    seq.sort(key=lambda x: getattr(x, 'linestart', x))
     return seq
 
 
@@ -1721,7 +1714,7 @@ class PHPFunction:
         #    createCixVariable(cixelement, "parent", vartype=self.classparent)
 
         # XXX for variables inside functions
-        for v in self.variables.values():
+        for v in list(self.variables.values()):
             v.toElementTree(cixelement)
 
 
@@ -1759,12 +1752,12 @@ class PHPInterface:
 
         if self.functions:
             r += "functions:\n"
-            for f in self.functions.values():
+            for f in list(self.functions.values()):
                 r += "    %r" % f
 
         if self.variables:
             r += "variables:\n"
-            for v in self.variables.values():
+            for v in list(self.variables.values()):
                 r += "    %r" % v
 
         return r + '\n'
@@ -1863,21 +1856,21 @@ class PHPClass:
 
         if self.functions:
             r += "functions:\n"
-            for f in self.functions.values():
+            for f in list(self.functions.values()):
                 r += "    %r" % f
 
         if self.variables:
             r += "variables:\n"
-            for v in self.variables.values():
+            for v in list(self.variables.values()):
                 r += "    %r" % v
 
         if self.traits:
             r += "traits:\n"
-            for k, v in self.traits.items():
+            for k, v in list(self.traits.items()):
                 r += "    %r" % k
             if self.traitOverrides:
                 r += "trait overrides:\n"
-                for k, v in self.traitOverrides.items():
+                for k, v in list(self.traitOverrides.items()):
                     r += "    %r, %r" % (k, v)
 
         return r + '\n'
@@ -1904,7 +1897,7 @@ class PHPClass:
 
         if self.traits:
             cixelement.attrib["traitrefs"] = " ".join(self.traits)
-            for citdl, data in self.traitOverrides.items():
+            for citdl, data in list(self.traitOverrides.items()):
                 alias, vis, insteadOf = data
                 if alias and not insteadOf:
                     name = alias
@@ -1993,19 +1986,19 @@ class PHPNamespace:
             r += "    %r" % v
 
         r += "constants:\n"
-        for v in self.constants.values():
+        for v in list(self.constants.values()):
             r += "    %r" % v
 
         r += "interfaces:\n"
-        for v in self.interfaces.values():
+        for v in list(self.interfaces.values()):
             r += "    %r" % v
 
         r += "functions:\n"
-        for f in self.functions.values():
+        for f in list(self.functions.values()):
             r += "    %r" % f
 
         r += "classes:\n"
-        for c in self.classes.values():
+        for c in list(self.classes.values()):
             r += repr(c)
 
         return r + '\n'
@@ -2060,27 +2053,27 @@ class PHPFile:
             r += "    %r" % v
 
         r += "constants:\n"
-        for v in self.constants.values():
+        for v in list(self.constants.values()):
             r += "    %r" % v
 
         r += "interfaces:\n"
-        for v in self.interfaces.values():
+        for v in list(self.interfaces.values()):
             r += "    %r" % v
 
         r += "functions:\n"
-        for f in self.functions.values():
+        for f in list(self.functions.values()):
             r += "    %r" % f
 
         r += "variables:\n"
-        for v in self.variables.values():
+        for v in list(self.variables.values()):
             r += "    %r" % v
 
         r += "classes:\n"
-        for c in self.classes.values():
+        for c in list(self.classes.values()):
             r += repr(c)
 
         r += "namespaces:\n"
-        for v in self.namespaces.values():
+        for v in list(self.namespaces.values()):
             r += "    %r" % v
 
         return r + '\n'
@@ -2130,11 +2123,11 @@ class PHPcile:
     #        f.toElementTree(cix)
 
     def convertToElementTreeModule(self, cixmodule):
-        for f in self.filesparsed.values():
+        for f in list(self.filesparsed.values()):
             f.convertToElementTreeModule(cixmodule)
 
     def convertToElementTreeFile(self, cix):
-        for f in self.filesparsed.values():
+        for f in list(self.filesparsed.values()):
             f.convertToElementTreeFile(cix)
 
 

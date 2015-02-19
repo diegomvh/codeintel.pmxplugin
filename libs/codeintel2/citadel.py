@@ -34,7 +34,7 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-from __future__ import unicode_literals
+
 r"""Handling for citadel parts of CodeIntel.
 
 The origin of the name "citadel": In early dev of codeintel naming for
