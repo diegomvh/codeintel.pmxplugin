@@ -14,8 +14,6 @@ class View(object):
         self._editor = editor
         self._command_history = []
         self._command_index = len(self._command_history) - 1
-        self._editor.document().redoAvailable.connect(self.on_document_redoAvailable)
-        self._editor.document().undoAvailable.connect(self.on_document_undoAvailable)
         self._editor.document().contentsChange.connect(self.on_document_contentsChange)
         self._event_listeners = []
         self._commands = {}
@@ -33,16 +31,19 @@ class View(object):
         self._editor.textChanged.connect(lambda view=self: listener.on_modified(view))
         self._editor.selectionChanged.connect(lambda view=self: listener.on_selection_modified(view))
 
+    def query_completions(self, prefix, locations):
+        completions = []
+        for listener in self._event_listeners:
+            completions.extend(listener.on_query_completions(self, prefix, locations))
+        return completions
+
+    def extract_completions(self, prefix, location):
+        return []
+
     def add_command(self, command):
         names = textutils.camelcase_to_text(command.__class__.__name__).split()
         name = "_".join(names[:-1])
         self._commands[name] = command
-
-    def on_document_redoAvailable(self, available):
-        print("Redo Available", available)
-
-    def on_document_undoAvailable(self, available):
-        print("Undo Available", available)
 
     def on_document_contentsChange(self, position, charsRemoved, charsAdded):
         text = self._editor.toPlainText()
@@ -100,7 +101,8 @@ class View(object):
         pass
     def run_command(self, string, args=None):
         """return None	Runs the named TextCommand with the (optional) given arguments."""
-        pass
+        self._editor.runCommand(string, args)
+
     def size(self):
         """return int	Returns the number of character in the file."""
         pass

@@ -34,7 +34,6 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-from __future__ import print_function
 
 """Ruby support for CodeIntel"""
 
@@ -446,15 +445,14 @@ class RubyLangIntel(CitadelLangIntel,
 
         return ruby_ver, libdir, sitelibdir, import_path, gem_lib_dirs
 
-    def _extra_dirs_from_env(self, env):
-        extra_dirs = set()
-        for pref in env.get_all_prefs("rubyExtraPaths"):
-            if not pref:
-                continue
-            # TODO: need to support Gems specially?
-            extra_dirs.update(d.strip() for d in pref.split(os.pathsep)
-                              if exists(d.strip()))
-        return tuple(extra_dirs)
+    #def _extra_dirs_from_env(self, env):
+    #    extra_dirs = set()
+    #    for pref in env.get_all_prefs("rubyExtraPaths"):
+    #        if not pref:
+    #            continue
+    #        # TODO: need to support Gems specially?
+    #        extra_dirs.update(d.strip() for d in pref.split(os.pathsep) if exists(d.strip()))
+    #    return tuple(extra_dirs)
 
     def _buf_indep_libs_from_env(self, env):
         """Create the buffer-independent list of libs."""

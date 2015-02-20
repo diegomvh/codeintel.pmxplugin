@@ -260,10 +260,7 @@ from io import StringIO
 import codecs
 import copy
 import weakref
-try:
-    import queue
-except ImportError:
-    import Queue as queue
+import queue
 
 import ciElementTree as ET
 from codeintel2.common import *
@@ -639,7 +636,7 @@ class Database(object):
         #   periodically call this.
         if self._catalogs_zone:
             self._catalogs_zone.save()
-        for lang_zone in self._lang_zone_from_lang.values():
+        for lang_zone in list(self._lang_zone_from_lang.values()):
             lang_zone.save()
 
     def cull_mem(self):
@@ -729,7 +726,7 @@ class Database(object):
         errors = []
         catalogs_zone = self.get_catalogs_zone()
         cix_path_from_res_id = {}
-        for cix_path, res_data in catalogs_zone.res_index.items():
+        for cix_path, res_data in list(catalogs_zone.res_index.items()):
             res_id, last_updated, name, toplevelnames_from_blobname_from_lang \
                 = res_data
             if res_id in cix_path_from_res_id:
@@ -773,7 +770,7 @@ class Database(object):
 
             all_blobnames = {}
             for filename, (scan_time, scan_error, res_data) \
-                    in res_index.items():
+                    in list(res_index.items()):
                 # res_data: {blobname -> ilk -> toplevelnames}
                 for blobname in res_data:
                     if blobname in all_blobnames:
@@ -829,12 +826,12 @@ class Database(object):
 
             all_langs_and_blobnames = {}
             for filename, (scan_time, scan_error, res_data) \
-                    in res_index.items():
+                    in list(res_index.items()):
                 # res_data: {lang -> blobname -> ilk -> toplevelnames}
                 for lang, blobname in (
                     (lang, list(tfifb.keys())[
                      0])  # only one blob per lang in a resource
-                    for lang, tfifb in res_data.items()
+                    for lang, tfifb in list(res_data.items())
                 ):
                     if (lang, blobname) in all_langs_and_blobnames:
                         errors.append("%s lang zone: %s blob '%s' provided "
@@ -970,9 +967,9 @@ class Database(object):
             yield self._catalogs_zone
         if self._stdlibs_zone:
             yield self._stdlibs_zone
-        for zone in list(self._lang_zone_from_lang.values()):
+        for zone in list(self._lang_zone_from_lang.values())[:]:
             yield zone
-        for zone in list(self._proj_zone_from_proj_path.values()):
+        for zone in list(self._proj_zone_from_proj_path.values())[:]:
             yield zone
 
     def load_blob(self, dbsubpath):

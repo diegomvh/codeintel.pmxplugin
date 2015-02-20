@@ -45,10 +45,7 @@ import logging
 from collections import defaultdict
 from glob import glob
 import threading
-try:
-    from queue import Queue
-except ImportError:
-    from Queue import Queue
+from queue import Queue
 import warnings
 import traceback
 import codecs

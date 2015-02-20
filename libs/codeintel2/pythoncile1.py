@@ -100,16 +100,6 @@ from codeintel2.common import CILEError
 from codeintel2 import util
 from codeintel2 import tdparser
 
-#---- Python version
-VERSION = sys.version_info[:2]
-
-if VERSION >= (3, 3):
-    PythonStrings = (ast.Str, ast.Bytes)
-    node_arg_name = lambda arg: arg.arg
-elif VERSION >= (2, 6):
-    PythonStrings = (ast.Str, )
-    node_arg_name = lambda arg: arg.id
-
 #---- exceptions
 
 
@@ -659,7 +649,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
             varargsIndex = kwargsIndex = None
         sigArgs = []
         for i in range(len(node_args.args)):
-            argName = node_arg_name(node_args.args[i])
+            argName = node_args.args[i].arg
             argument = {"name": argName,
                         "nspath": nspath + (argName,),
                         "doc": None,
@@ -940,11 +930,8 @@ class AST2CIXVisitor(ast.NodeVisitor):
 
     def visit_With(self, node):
         log.info("visit_%s:%s: %r %r", node.__class__.__name__, getattr(node, 'lineno', '?'), self.lines and hasattr(node, 'lineno') and self.lines[node.lineno - 1], node._fields)
-        if hasattr(node, "items"):
-            for item in node.items:
-                self._handleUnknownAssignment(item.context_expr, node.lineno)
-        else:
-            self._handleUnknownAssignment(node.optional_vars, node.lineno)
+        for item in node.items:
+            self._handleUnknownAssignment(item.context_expr, node.lineno)
         self.generic_visit(node)
 
     def visit_Try(self, node):
@@ -1011,7 +998,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
                 return (None, citdl)
                 # XXX Could optimize here for common built-in attributes. E.g.,
                 #    we *know* that str.join() returns a string.
-            elif isinstance(expr.value, PythonStrings):
+            elif isinstance(expr.value, (ast.Str, ast.Bytes)):
                 # Special case: specifically refer to type object for
                 # attribute access on constants, e.g.:
                 #   ' '.join
@@ -1024,7 +1011,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
             # Special case: specifically refer to type object for constants.
             citdl = "__builtins__.%s" % type(expr.n).__name__
             return (None, citdl)
-        elif isinstance(expr, PythonStrings):
+        elif isinstance(expr, (ast.Str, ast.Bytes)):
             # Special case: specifically refer to type object for constants.
             citdl = "__builtins__.%s" % type(expr.s).__name__
             return (None, citdl)
@@ -1051,7 +1038,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
         ts = []
         if isinstance(expr, ast.Num):
             ts = [type(expr.n).__name__]
-        elif isinstance(expr, PythonStrings):
+        elif isinstance(expr, (ast.Str, ast.Bytes)):
             ts = [type(expr.s).__name__]
         elif isinstance(expr, ast.Tuple):
             ts = [tuple.__name__]
@@ -1171,7 +1158,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
             s = node.id
         elif isinstance(node, ast.Num):
             s = repr(node.n)
-        elif isinstance(node, PythonStrings):
+        elif isinstance(node, (ast.Str, ast.Bytes)):
             s = repr(node.s)
         elif isinstance(node, ast.Attribute):
             s = '.'.join([self._getExprRepr(node.value), node.attr])
@@ -1267,7 +1254,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
             if isinstance(node.op, ast.BitOr):
                 creprs = []
                 for cnode in [node.left, node.right]:
-                    if isinstance(cnode, (ast.Num, ) + PythonStrings):
+                    if isinstance(cnode, (ast.Num, ast.Str, ast.Bytes)):
                         crepr = self._getExprRepr(cnode)
                     else:
                         crepr = "(%s)" % self._getExprRepr(cnode)
@@ -1276,7 +1263,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
             elif isinstance(node.op, ast.BitAnd):
                 creprs = []
                 for cnode in [node.left, node.right]:
-                    if isinstance(cnode, (ast.Num, ) + PythonStrings):
+                    if isinstance(cnode, (ast.Num, ast.Str, ast.Bytes)):
                         crepr = self._getExprRepr(cnode)
                     else:
                         crepr = "(%s)" % self._getExprRepr(cnode)
@@ -1285,7 +1272,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
             elif isinstance(node.op, ast.BitXor):
                 creprs = []
                 for cnode in [node.left, node.right]:
-                    if isinstance(cnode, (ast.Num,) + PythonStrings):
+                    if isinstance(cnode, (ast.Num, ast.Str, ast.Bytes)):
                         crepr = self._getExprRepr(cnode)
                     else:
                         crepr = "(%s)" % self._getExprRepr(cnode)
@@ -1313,7 +1300,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
                 varargsIndex = kwargsIndex = None
             sigArgs = []
             for i in range(len(node_args.args)):
-                argName = node_arg_name(node_args.args[i])
+                argName = node_args.args[i].arg
                 if i == kwargsIndex:
                     sigArgs.append("**" + argName)
                 elif i == varargsIndex:
@@ -1334,8 +1321,6 @@ class AST2CIXVisitor(ast.NodeVisitor):
             except PythonCILEError:
                 # XXX Work around some trouble cases.
                 s += ":..."
-        elif isinstance(node, ast.NameConstant):
-            s = "NameConstant"
         if s is None:
             raise PythonCILEError("don't know how to get string repr "
                                   "of expression: %r" % node)
@@ -1355,7 +1340,7 @@ class AST2CIXVisitor(ast.NodeVisitor):
             s = node.id
         elif isinstance(node, ast.Num):
             s = repr(node.n)
-        elif isinstance(node, PythonStrings):
+        elif isinstance(node, (ast.Str, ast.Bytes)):
             s = repr(node.s)
         elif isinstance(node, ast.Attribute):
             exprRepr = self._getCITDLExprRepr(node.value, _level + 1)
@@ -1770,7 +1755,7 @@ def main(argv):
             return
         elif opt in ("-V", "--version"):
             ver = '.'.join([str(part) for part in _version_])
-            print(("pythoncile %s" % ver))
+            print("pythoncile %s" % ver)
             return
         elif opt in ("-v", "--verbose"):
             numVerboses += 1

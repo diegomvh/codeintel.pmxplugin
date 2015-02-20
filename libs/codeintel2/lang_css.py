@@ -442,7 +442,7 @@ class CSSLangIntel(LangIntel, ParenStyleCalltipIntelMixin):
     @LazyClassAttribute
     def CSS_PROPERTY_NAMES(self):
         # Setup the names triggered for "property-names"
-        return sorted(self.CSS_ATTRIBUTES.keys(), key=OrdPunctLast)
+        return sorted(list(self.CSS_ATTRIBUTES.keys()), key=OrdPunctLast)
 
     @LazyClassAttribute
     def CSS_PROPERTY_ATTRIBUTE_CALLTIPS_DICT(self):

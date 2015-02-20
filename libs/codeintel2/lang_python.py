@@ -34,7 +34,7 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-from __future__ import unicode_literals
+
 """Python support for CodeIntel"""
 
 import os
@@ -304,7 +304,7 @@ class PythonImportsEvaluator(Evaluator):
                     raise
 
                 if symbol_name == "*":  # can it be so?
-                    for m_name, m_elem in blob.names.items():
+                    for m_name, m_elem in list(blob.names.items()):
                         m_type = m_elem.get("ilk") or m_elem.tag
                         members.add((m_type, m_name))
                 elif symbol_name in blob.names:
@@ -1121,10 +1121,10 @@ class PythonImportHandler(ImportHandler):
             compiler = which.which("python")
         self.corePath = self._shellOutForPath(compiler)
 
-    def _findScannableFiles(self,
-                            files, searchedDirs, skipRareImports,
-                            importableOnly,
+    def _findScannableFiles(self, xxx_todo_changeme,
                             dirname, names):
+        (files, searchedDirs, skipRareImports,
+                             importableOnly) = xxx_todo_changeme
         if sys.platform.startswith("win"):
             cpath = dirname.lower()
         else:
@@ -1246,13 +1246,6 @@ class PythonCILEDriver(CILEDriver):
         log.info("scan_purelang: path: %r lang: %s", buf.path, buf.lang)
         # log.warn("TODO: python cile that uses elementtree")
         content = buf.accessor.text
-        if isinstance(content, str):
-            encoding = buf.encoding or "utf-8"
-            try:
-                content = content.encode(encoding)
-            except UnicodeError as ex:
-                raise CodeIntelError("cannot encode Python content as %r (%s)"
-                                     % (encoding, ex))
         el = pythoncile.scan_et(content, buf.path, lang=self.lang)
         return el
 

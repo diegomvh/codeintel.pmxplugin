@@ -54,7 +54,7 @@ class _BaseMemoryCommandHandler(CommandHandler):
             except:
                 log.exception("Failed to report memory for zone %r", zone)
 
-        for path, data in results.items():
+        for path, data in list(results.items()):
             if path.startswith("explicit/python"):
                 if data["units"] == "bytes":
                     total -= data["amount"]

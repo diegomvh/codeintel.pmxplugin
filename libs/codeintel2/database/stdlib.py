@@ -56,10 +56,7 @@ from io import StringIO
 import codecs
 import copy
 import weakref
-try:
-    import queue
-except ImportError:
-    import Queue as queue
+import queue
 
 import ciElementTree as ET
 from codeintel2.common import *
@@ -354,7 +351,7 @@ class StdLibsZone(object):
         """
         log.debug("StdLibZone: reporting memory")
         result = {}
-        for stdlib in self._stdlib_from_stdlib_ver_and_name.values():
+        for stdlib in list(self._stdlib_from_stdlib_ver_and_name.values()):
             result.update(stdlib.reportMemory())
         return result
 

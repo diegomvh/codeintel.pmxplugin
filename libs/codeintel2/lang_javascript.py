@@ -34,7 +34,6 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-from __future__ import print_function
 
 """JavaScript support for Code Intelligence
 
@@ -151,40 +150,36 @@ class JavaScriptLexer(Lexer):
             SilverCity.WordList()
         ]
 
-
 class PureJavaScriptStyleClassifier:
     def __init__(self):
         self.is_udl = False
-        self.operator_style = SCE_C_OPERATOR
+        self.operator_style   = SCE_C_OPERATOR
         self.identifier_style = SCE_C_IDENTIFIER
-        self.keyword_style = SCE_C_WORD
-        self.comment_styles = (SCE_C_COMMENT,
-                               SCE_C_COMMENTDOC,
-                               SCE_C_COMMENTLINE,
-                               SCE_C_COMMENTLINEDOC,
-                               SCE_C_COMMENTDOCKEYWORD,
-                               SCE_C_COMMENTDOCKEYWORDERROR)
-        self.string_styles = (
-            SCE_C_STRING, SCE_C_CHARACTER, SCE_C_STRINGEOL)
+        self.keyword_style    = SCE_C_WORD
+        self.comment_styles   = (SCE_C_COMMENT,
+                                 SCE_C_COMMENTDOC,
+                                 SCE_C_COMMENTLINE,
+                                 SCE_C_COMMENTLINEDOC,
+                                 SCE_C_COMMENTDOCKEYWORD,
+                                 SCE_C_COMMENTDOCKEYWORDERROR)
+        self.string_styles    = (SCE_C_STRING, SCE_C_CHARACTER, SCE_C_STRINGEOL)
         self.whitespace_style = SCE_C_DEFAULT
-        self.ignore_styles = self.comment_styles + (self.whitespace_style, )
-
+        self.ignore_styles    = self.comment_styles + (self.whitespace_style, )
 
 class UDLJavaScriptStyleClassifier:
     def __init__(self):
         self.is_udl = True
-        self.operator_style = SCE_UDL_CSL_OPERATOR
+        self.operator_style   = SCE_UDL_CSL_OPERATOR
         self.identifier_style = SCE_UDL_CSL_IDENTIFIER
-        self.keyword_style = SCE_UDL_CSL_WORD
-        self.comment_styles = (SCE_UDL_CSL_COMMENT,
-                               SCE_UDL_CSL_COMMENTBLOCK,)
-        self.string_styles = (SCE_UDL_CSL_STRING, )
+        self.keyword_style    = SCE_UDL_CSL_WORD
+        self.comment_styles   = (SCE_UDL_CSL_COMMENT,
+                                 SCE_UDL_CSL_COMMENTBLOCK,)
+        self.string_styles    = (SCE_UDL_CSL_STRING, )
         self.whitespace_style = SCE_UDL_CSL_DEFAULT
-        self.ignore_styles = self.comment_styles + (self.whitespace_style, )
+        self.ignore_styles    = self.comment_styles + (self.whitespace_style, )
 
 pureJSClassifier = PureJavaScriptStyleClassifier()
 udlJSClassifier = UDLJavaScriptStyleClassifier()
-
 
 class JavaScriptLangIntel(CitadelLangIntel,
                           ParenStyleCalltipIntelMixin,
@@ -427,10 +422,9 @@ class JavaScriptLangIntel(CitadelLangIntel,
                                 # explicit can be longer than 3-chars, skip over
                                 # the rest of the word/identifier.
                                 ac = AccessorCache(accessor, p)
-                                p, ch, style = ac.getPrecedingPosCharStyle(
-                                    last_style,
-                                    jsClassifier.ignore_styles,
-                                    max_look_back=80)
+                                p, ch, style = ac.getPrecedingPosCharStyle(last_style,
+                                                    jsClassifier.ignore_styles,
+                                                    max_look_back=80)
 
                         # Now we know that we are three identifier characters
                         # preceeded by something different, which is not that
@@ -444,8 +438,8 @@ class JavaScriptLangIntel(CitadelLangIntel,
                             if ac is None:
                                 ac = AccessorCache(accessor, p)
                             p, ch, style = ac.getPrecedingPosCharStyle(style,
-                                                                       jsClassifier.ignore_styles,
-                                                                       max_look_back=80)
+                                                jsClassifier.ignore_styles,
+                                                max_look_back=80)
                         if style is not None:
                             ch = accessor.char_at_pos(p)
                             if ch == ".":
@@ -950,7 +944,8 @@ class JavaScriptImportHandler(ImportHandler):
     def setCorePath(self, compiler=None, extra=None):
         self.corePath = []
 
-    def _findScannableFiles(self, files, searchedDirs, dirname, names):
+    def _findScannableFiles(self, xxx_todo_changeme, dirname, names):
+        (files, searchedDirs) = xxx_todo_changeme
         if sys.platform.startswith("win"):
             cpath = dirname.lower()
         else:
@@ -1299,7 +1294,7 @@ class JSObject:
             result.append("%s%s %s" % (" " * depth, self.cixname, self.name))
         for attrname in ("classes", "members", "functions", "variables"):
             d = getattr(self, attrname, {})
-            for v in d.values():
+            for v in list(d.values()):
                 result += v.outline(depth + 2)
         return result
 
@@ -1367,7 +1362,7 @@ class JSObject:
 
         # Additional meta-data.
         if self.metadata:
-            for key, value in self.metadata.items():
+            for key, value in list(self.metadata.items()):
                 cixobject.attrib[key] = value
 
         # Add the type information, JSDoc overrides whatever the ciler found
@@ -1488,7 +1483,7 @@ class JSArgument(JSVariable):
             result.append("%sargument %s" % (" " * depth, self.name))
         for attrname in ("classes", "members", "functions", "variables"):
             d = getattr(self, attrname, {})
-            for v in d.values():
+            for v in list(d.values()):
                 result += v.outline(depth + 2)
         return result
 
@@ -1603,7 +1598,7 @@ class JSFile:
         result = ["File: %r" % (self.name)]
         for attrname in ("classes", "functions", "variables"):
             d = getattr(self, attrname, {})
-            for v in d.values():
+            for v in list(d.values()):
                 result += v.outline(2)
         return result
 
@@ -1731,7 +1726,7 @@ class JSFile:
                 self._lookupVariableTypes(
                     list(jstype.functions.values()), scopeStack + [jstype])
             if hasattr(jstype, "variables"):
-                for jsvariable in jstype.variables.values():
+                for jsvariable in list(jstype.variables.values()):
                     varType = jsvariable.type
                     if varType:
                         actualType = self._lookupVariableType(
@@ -2605,7 +2600,7 @@ class JavaScriptCiler:
                 jsclass.line = jsfunc.line
             # Copy over non-local variables from the function to the class,
             # all the local variables stay inside the function scope.
-            for varName, v in jsfunc.variables.items():
+            for varName, v in list(jsfunc.variables.items()):
                 isLocal = "__local__" in v.attributes or isinstance(
                     v, JSArgument)
                 if not isLocal:
@@ -2623,15 +2618,15 @@ class JavaScriptCiler:
             parent.variables.pop(var.name, None)
 
         # Copy across all non-local members, bug 88549.
-        for name, jsobject in jsfunc.variables.items():
+        for name, jsobject in list(jsfunc.variables.items()):
             if '__local__' not in jsobject.attributes and not isinstance(jsobject, JSArgument):
                 jsclass.variables[name] = jsobject
                 jsfunc.variables.pop(name, None)
-        for name, jsobject in jsfunc.functions.items():
+        for name, jsobject in list(jsfunc.functions.items()):
             if '__local__' not in jsobject.attributes:
                 jsclass.functions[name] = jsobject
                 jsfunc.functions.pop(name, None)
-        for name, jsobject in jsfunc.classes.items():
+        for name, jsobject in list(jsfunc.classes.items()):
             if '__local__' not in jsobject.attributes:
                 jsclass.classes[name] = jsobject
                 jsfunc.classes.pop(name, None)
@@ -3415,7 +3410,7 @@ class JavaScriptCiler:
                         # "alias" to a primitive
                         varType = TYPE_VARIABLE
                 varType_mapping = dict([(
-                    v, k) for k, v in globals().items() if k.startswith("TYPE_")])
+                    v, k) for k, v in list(globals().items()) if k.startswith("TYPE_")])
                 log.debug("_variableHandler:: varType:%r, typeNames:%r, args:%r, p: %d", varType_mapping.get(
                     varType, varType), typeNames, args, p)
                 if varType == TYPE_FUNCTION:
@@ -3718,7 +3713,7 @@ class JavaScriptCiler:
         for fieldname in ('classes', 'members', 'variables', 'functions', ):
             d_obj = getattr(jsobject, fieldname, {})
             d_oth = getattr(jsother, fieldname, {})
-            for name, jsobj in d_obj.items():
+            for name, jsobj in list(d_obj.items()):
                 # Check the parents are not the same.
                 if jsobj.parent == jsother:
                     parent = jsobj.parent
@@ -3739,7 +3734,7 @@ class JavaScriptCiler:
         d_members = getattr(jsother, "members", {})
         d_variables = getattr(jsother, "variables", {})
 
-        for name, jsobj in d_variables.items():
+        for name, jsobj in list(d_variables.items()):
             if name in d_members:
                 # Decide which one to keep then, remove the variable and then
                 # replace the member with the best choice.

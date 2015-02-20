@@ -16,6 +16,8 @@ from .settings import Settings
 from .view import View
 from .window import Window
 
+INHIBIT_WORD_COMPLETIONS = False
+INHIBIT_EXPLICIT_COMPLETIONS = False
 timer_thread_name = "Sublime Timer"
 
 pmx = qapplication()
