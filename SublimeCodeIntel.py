@@ -89,10 +89,17 @@ except ImportError:
     from cStringIO import StringIO
     string_types = basestring
 
-
 CODEINTEL_HOME_DIR = os.path.expanduser(os.path.join('~', '.codeintel'))
 __file__ = os.path.normpath(os.path.abspath(__file__))
 __path__ = os.path.dirname(__file__)
+
+libs_path = os.path.join(__path__, 'libs')
+if libs_path not in sys.path:
+    sys.path.insert(0, libs_path)
+
+arch_path = os.path.join(__path__, 'arch')
+if arch_path not in sys.path:
+    sys.path.insert(0, arch_path)
 
 cplns_were_empty = None
 last_trigger_name = None
@@ -589,11 +596,11 @@ def queue_loop():
         modifications for some time as to not slow down the UI with autocompletes."""
     global __signaled_, __signaled_first_
     while __loop_:
-        print('acquire...')
+        # print('acquire...')
         __semaphore_.acquire()
         __signaled_first_ = 0
         __signaled_ = 0
-        print("DISPATCHING!", len(QUEUE))
+        # print("DISPATCHING!", len(QUEUE))
         queue_dispatcher()
 
 
@@ -1440,7 +1447,7 @@ class PythonCodeIntel(sublime_plugin.EventListener):
             if exclude_scope in sublime_scope:
                 return
 
-        if not lang or lang.lower() not in [l.lower() for l in settings_manager.get('codeintel_enabled_languages', [])]:
+        if not settings_manager.get('codeintel_live', default=True, language=lang):
             # restore the original sublime auto_complete settings from Preferences.sublime-settings file in User package
             # this is for files with mixed languages (HTML/PHP)
             view.settings().set('auto_complete', settings_manager.sublime_auto_complete)
@@ -1457,6 +1464,9 @@ class PythonCodeIntel(sublime_plugin.EventListener):
         sel = view_sel[0]
         pos = sel.end()
         next_char = view.substr(sublime.Region(pos - 1, pos))
+
+        if next_char == '\n':
+            return
 
         is_fill_char = next_char and next_char in cpln_fillup_chars.get(lang, '')
         is_stop_char = next_char and next_char in cpln_stop_chars.get(lang, '')
@@ -1513,11 +1523,6 @@ class PythonCodeIntel(sublime_plugin.EventListener):
 
     def on_query_completions(self, view, prefix, locations):
         vid = view.id()
-
-        lang = guess_lang(view)
-        if not lang or lang.lower() not in [l.lower() for l in settings_manager.get('codeintel_enabled_languages', [])]:
-            # lang is not ci enabled. Dont mess with the default completions!
-            return []
 
         # add sublime completions to the mix / not recomended
         sublime_word_completions = False
@@ -1748,7 +1753,7 @@ class CodeintelCommand(sublime_plugin.TextCommand):
 
 
 class SublimecodeintelWindowCommand(sublime_plugin.WindowCommand):
-    def is_enabled(self):
+    def is_enabled(self, *args):
         view = self.window.active_view()
         return bool(view)
 
@@ -1776,17 +1781,17 @@ class SublimecodeintelCommand(SublimecodeintelWindowCommand):
 
 
 class SublimecodeintelEnableCommand(SublimecodeintelCommand):
-    def is_enabled(self):
+    def is_enabled(self, *args):
         return super(SublimecodeintelEnableCommand, self).is_enabled(False)
 
 
 class SublimecodeintelDisableCommand(SublimecodeintelCommand):
-    def is_enabled(self):
+    def is_enabled(self, *args):
         return super(SublimecodeintelDisableCommand, self).is_enabled(True)
 
 
 class SublimecodeintelResetCommand(SublimecodeintelCommand):
-    def is_enabled(self):
+    def is_enabled(self, *args):
         return super(SublimecodeintelResetCommand, self).is_enabled()
 
 
@@ -1808,20 +1813,20 @@ class SublimecodeintelLiveCommand(SublimecodeintelCommand):
 
 
 class SublimecodeintelEnableLiveCommand(SublimecodeintelLiveCommand):
-    def is_enabled(self):
+    def is_enabled(self, *args):
         return super(SublimecodeintelEnableLiveCommand, self).is_enabled(False, False)
 
 
 class SublimecodeintelDisableLiveCommand(SublimecodeintelLiveCommand):
-    def is_enabled(self):
+    def is_enabled(self, *args):
         return super(SublimecodeintelDisableLiveCommand, self).is_enabled(True, False)
 
 
 class SublimecodeintelEnableLiveLangCommand(SublimecodeintelLiveCommand):
-    def is_enabled(self):
+    def is_enabled(self, *args):
         return super(SublimecodeintelEnableLiveLangCommand, self).is_enabled(False, True)
 
 
 class SublimecodeintelDisableLiveLangCommand(SublimecodeintelLiveCommand):
-    def is_enabled(self):
+    def is_enabled(self, *args):
         return super(SublimecodeintelDisableLiveLangCommand, self).is_enabled(True, True)

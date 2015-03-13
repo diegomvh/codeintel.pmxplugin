@@ -15,7 +15,7 @@ from sublime import View
 from sublime_plugin import InsertSnippetCommand
 
 from codeintel.models import CodeIntelCompletionModel
-from codeintel.SublimeCodeIntel import PythonCodeIntel, queue_finalize
+from SublimeCodeIntel import PythonCodeIntel, queue_finalize
 
 class CodeIntelAddon(CodeEditorAddon):
 

@@ -1,14 +1,9 @@
 {
-    "id": "org.prymatex.codeintel",
+    "id": "org.prymatex.sublime.codeintel",
     "title" : "Code intelligence plugin",
-    "icon": "share/Icons/python.png",
     "version" : "1.0",
     "website" : "www.prymatex.org",
     "author" : "Prymatex Team",
     "description" : "",
-    "depends" : [ "org.prymatex.codeeditor" ],
-    "paths": ["arch", "libs"],
-    "package": "codeintel",
-    "register": "registerPlugin",
-    "unregister": "unregisterPlugin"
+    "depends" : [ "org.prymatex.sublime" ]
 }
