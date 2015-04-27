@@ -17,6 +17,7 @@ from sublime_plugin import InsertSnippetCommand
 from codeintel.models import CodeIntelCompletionModel
 from SublimeCodeIntel import PythonCodeIntel, queue_finalize
 
+print("Carango")
 class CodeIntelAddon(CodeEditorAddon):
 
     def initialize(self, **kwargs):
@@ -32,10 +33,9 @@ class CodeIntelAddon(CodeEditorAddon):
         self.complition_model = CodeIntelCompletionModel(parent=self)
         complition = self.editor.findAddon(CodeEditorComplitionMode)
         complition.registerModel(self.complition_model)
-
+        
     def finalize(self):
         import threading
-        print(threading.current_thread().name)
         for thread in threading.enumerate():
             print(thread.name)
             
