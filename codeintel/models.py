@@ -15,7 +15,6 @@ class CodeIntelCompletionModel(CompletionBaseModel):
             self.completionPrefix(), 
             [1,2,3,4]
         )
-        print(self.suggestions)
         self.suggestionsReady.emit()
 
     def isReady(self):
@@ -32,13 +31,13 @@ class CodeIntelCompletionModel(CompletionBaseModel):
     def setCurrentRow(self, index, completion_count):
         return True
         
-    def columnCount(self, parent = None):
+    def columnCount(self, parent=None):
         return 1
 
-    def rowCount(self, parent = None):
+    def rowCount(self, parent=None):
         return len(self.suggestions)
 
-    def index(self, row, column, parent = QtCore.QModelIndex()):
+    def index(self, row, column, parent=QtCore.QModelIndex()):
         if row < len(self.suggestions):
             return self.createIndex(row, column, parent)
         else:

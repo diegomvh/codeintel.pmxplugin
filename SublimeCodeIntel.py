@@ -95,11 +95,11 @@ __path__ = os.path.dirname(__file__)
 
 libs_path = os.path.join(__path__, 'libs')
 if libs_path not in sys.path:
-    sys.path.insert(0, libs_path)
+    sys.path.insert(1, libs_path)
 
 arch_path = os.path.join(__path__, 'arch')
 if arch_path not in sys.path:
-    sys.path.insert(0, arch_path)
+    sys.path.insert(1, arch_path)
 
 cplns_were_empty = None
 last_trigger_name = None
@@ -1830,3 +1830,4 @@ class SublimecodeintelEnableLiveLangCommand(SublimecodeintelLiveCommand):
 class SublimecodeintelDisableLiveLangCommand(SublimecodeintelLiveCommand):
     def is_enabled(self, *args):
         return super(SublimecodeintelDisableLiveLangCommand, self).is_enabled(True, True)
+
