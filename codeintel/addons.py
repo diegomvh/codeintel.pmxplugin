@@ -17,18 +17,11 @@ from sublime_plugin import InsertSnippetCommand
 from codeintel.models import CodeIntelCompletionModel
 from SublimeCodeIntel import PythonCodeIntel, queue_finalize
 
-print("Carango")
 class CodeIntelAddon(CodeEditorAddon):
 
     def initialize(self, **kwargs):
         super(CodeIntelAddon, self).initialize(**kwargs)
         self.setObjectName("CodeIntelAddon")
-        
-        # Build Sublime abstraction
-        self.view = View(self.editor)
-        self.view.add_event_listener(PythonCodeIntel())
-        self.view.add_command(InsertSnippetCommand())
-        self.application().aboutToQuit.connect(self.finalize)
         
         self.complition_model = CodeIntelCompletionModel(parent=self)
         complition = self.editor.findAddon(CodeEditorComplitionMode)

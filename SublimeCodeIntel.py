@@ -596,11 +596,11 @@ def queue_loop():
         modifications for some time as to not slow down the UI with autocompletes."""
     global __signaled_, __signaled_first_
     while __loop_:
-        # print('acquire...')
+        print('acquire...')
         __semaphore_.acquire()
         __signaled_first_ = 0
         __signaled_ = 0
-        # print("DISPATCHING!", len(QUEUE))
+        print("DISPATCHING!", len(QUEUE))
         queue_dispatcher()
 
 
@@ -617,8 +617,8 @@ def queue(view, callback, timeout, busy_timeout=None, preemptive=False, args=[],
         _delay_queue(timeout, preemptive)
         if not __signaled_first_:
             __signaled_first_ = __signaled_
-            # print('first',)
-        # print('queued in', (__signaled_ - now))
+            print('first',)
+        print('queued in', (__signaled_ - now))
     finally:
         __lock_.release()
 
@@ -639,7 +639,7 @@ def _delay_queue(timeout, preemptive):
     new__signaled_ = now + _timeout - 0.01
     if __signaled_ >= now - 0.01 and (preemptive or new__signaled_ >= __signaled_ - 0.01):
         __signaled_ = new__signaled_
-        # print('delayed to', (preemptive, __signaled_ - now))
+        print('delayed to', (preemptive, __signaled_ - now))
 
         def _signal():
             if time.time() < __signaled_:
