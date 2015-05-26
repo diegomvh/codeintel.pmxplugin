@@ -672,7 +672,7 @@ __pre_initialized_ = False
 def queue_finalize(timeout=None):
     global __pre_initialized_
     for thread in threading.enumerate():
-        if thread.isAlive() and thread.name == queue_thread_name:
+        if thread.name == queue_thread_name and thread.isAlive():
             __pre_initialized_ = True
             print("thread finalize")
             thread.__semaphore_.release()
@@ -778,7 +778,7 @@ def codeintel_manager(manager_id=None):
 def codeintel_scan(view, path, content, lang, callback=None, pos=None, forms=None, caller=None):
     global despair
     for thread in threading.enumerate():
-        if thread.isAlive() and thread.name == "scanning thread":
+        if thread.name == "scanning thread" and thread.isAlive():
             logger(view, 'info', "Updating indexes... The first time this can take a while. Do not despair!", timeout=20000, delay=despair)
             despair = 0
             return
