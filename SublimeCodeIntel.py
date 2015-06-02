@@ -305,7 +305,7 @@ def tooltip(view, calltips, text_in_current_line, original_pos, lang):
             # Insert function call snippets:
             # func = m.group(1)
             # scope = view.scope_name(pos)
-            # view.run_command('new_snippet', {'contents': snippets[0][0], 'tab_trigger': func, 'scope': scope})  # FIXME: Doesn't add the new snippet... is it possible to do so?
+            # view.run_command('new_snippet', {'content': snippets[0][0], 'tab_trigger': func, 'scope': scope})  # FIXME: Doesn't add the new snippet... is it possible to do so?
             def _insert_snippet():
                 # Check to see we are still at a position where the snippet is wanted:
                 view_sel = view.sel()
@@ -315,7 +315,7 @@ def tooltip(view, calltips, text_in_current_line, original_pos, lang):
                 pos = sel.end()
                 if not pos or pos != original_pos:
                     return
-                view.run_command('insert_snippet', {'contents': snippets[0][0]})
+                view.run_command('insert_snippet', {'content': snippets[0][0]})
             sublime.set_timeout(_insert_snippet, 500)  # Delay snippet insertion a bit... it's annoying some times
 
 
@@ -1475,14 +1475,14 @@ class PythonCodeIntel(sublime_plugin.EventListener):
         if is_stop_char:
             hide_auto_complete(view)
 
-        # print('on_modified', view.command_history(1), view.command_history(0), view.command_history(-1))
+        print('on_modified', view.command_history(1), view.command_history(0), view.command_history(-1))
         if (not hasattr(view, 'command_history') or view.command_history(1)[1] is None and (
                 view.command_history(0)[0] == 'insert' and (
                     view.command_history(0)[1]['characters'][-1] != '\n'
                 ) or
                 view.command_history(-1)[0] in ('insert', 'paste') and (
                     view.command_history(0)[0] == 'commit_completion' or
-                    view.command_history(0)[0] == 'insert_snippet' and view.command_history(0)[1]['contents'] == '($0)'
+                    view.command_history(0)[0] == 'insert_snippet' and view.command_history(0)[1]['content'] == '($0)'
                 )
         )):
             if view.command_history(0)[0] == 'commit_completion':
